@@ -1,0 +1,130 @@
+import Foundation
+
+/// Store normalizado do ziri. É a fonte que o iPhone consome — o ChatStorage do
+/// WhatsApp nunca é exposto diretamente.
+public final class ZiriStore {
+    public static let defaultPath = NSString(string: "~/.ziri/store.sqlite").expandingTildeInPath
+
+    let db: DB
+
+    public init(path: String = ZiriStore.defaultPath) throws {
+        let dir = (path as NSString).deletingLastPathComponent
+        try? FileManager.default.createDirectory(
+            atPath: dir, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        db = try DB(path: path)
+        try db.exec("PRAGMA journal_mode=WAL;")
+        try db.exec("""
+        CREATE TABLE IF NOT EXISTS message (
+          id       TEXT PRIMARY KEY,
+          sent_at  REAL NOT NULL,
+          chat_jid TEXT NOT NULL,
+          chat_name TEXT NOT NULL,
+          is_group INTEGER NOT NULL,
+          from_me  INTEGER NOT NULL,
+          sender_id TEXT NOT NULL DEFAULT '',
+          sender   TEXT NOT NULL,
+          body     TEXT NOT NULL,
+          reply_to TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_message_sent_at ON message(sent_at);
+        CREATE INDEX IF NOT EXISTS idx_message_chat ON message(chat_jid, sent_at);
+        CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        """)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
+    }
+
+    /// Data da mensagem mais recente já ingerida. Usada como marca d'água da extração.
+    public var watermark: Date? {
+        get throws {
+            let t = try db.scalarDouble("SELECT COALESCE(MAX(sent_at), 0) FROM message")
+            return t > 0 ? Date(timeIntervalSince1970: t) : nil
+        }
+    }
+
+    public var count: Int {
+        get throws { try db.scalarInt("SELECT COUNT(*) FROM message") }
+    }
+
+    /// Insere ignorando duplicatas por id. Retorna quantas linhas eram novas.
+    @discardableResult
+    public func upsert(_ messages: [ZMessage]) throws -> Int {
+        guard !messages.isEmpty else { return 0 }
+        let before = try count
+        try db.exec("BEGIN IMMEDIATE")
+        do {
+            let stmt = try db.prepare("""
+            INSERT OR IGNORE INTO message
+              (id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+            """)
+            defer { stmt.finalize() }
+            for m in messages {
+                stmt.bind(1, m.id)
+                stmt.bind(2, m.sentAt.timeIntervalSince1970)
+                stmt.bind(3, m.chatJID)
+                stmt.bind(4, m.chatName)
+                stmt.bind(5, m.isGroup)
+                stmt.bind(6, m.fromMe)
+                stmt.bind(7, m.senderID)
+                stmt.bind(8, m.sender)
+                stmt.bind(9, m.body)
+                stmt.bind(10, m.replyTo)
+                try stmt.run()
+            }
+            try db.exec("COMMIT")
+        } catch {
+            try? db.exec("ROLLBACK")
+            throw error
+        }
+        return try count - before
+    }
+
+    /// Mensagens posteriores a `since`, em ordem cronológica — o delta que vai pro iPhone.
+    public func messages(since: Date?, limit: Int = 5_000) throws -> [ZMessage] {
+        let cutoff = since?.timeIntervalSince1970 ?? 0
+        var out: [ZMessage] = []
+        try db.query("""
+        SELECT id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to
+        FROM message WHERE sent_at > \(cutoff)
+        ORDER BY sent_at ASC LIMIT \(limit)
+        """) { s in
+            out.append(ZMessage(
+                id: s.string(0) ?? "",
+                sentAt: Date(timeIntervalSince1970: s.double(1)),
+                chatJID: s.string(2) ?? "",
+                chatName: s.string(3) ?? "",
+                isGroup: s.bool(4),
+                fromMe: s.bool(5),
+                senderID: s.string(6) ?? "",
+                sender: s.string(7) ?? "",
+                body: s.string(8) ?? "",
+                replyTo: s.string(9)
+            ))
+        }
+        return out
+    }
+
+    public struct Stats: Sendable {
+        public let messages: Int
+        public let chats: Int
+        public let groups: Int
+        public let first: Date?
+        public let last: Date?
+    }
+
+    public var stats: Stats {
+        get throws {
+            let first = try db.scalarDouble("SELECT COALESCE(MIN(sent_at),0) FROM message")
+            let last = try db.scalarDouble("SELECT COALESCE(MAX(sent_at),0) FROM message")
+            return Stats(
+                messages: try count,
+                chats: try db.scalarInt("SELECT COUNT(DISTINCT chat_jid) FROM message"),
+                groups: try db.scalarInt("SELECT COUNT(DISTINCT chat_jid) FROM message WHERE is_group=1"),
+                first: first > 0 ? Date(timeIntervalSince1970: first) : nil,
+                last: last > 0 ? Date(timeIntervalSince1970: last) : nil
+            )
+        }
+    }
+}
