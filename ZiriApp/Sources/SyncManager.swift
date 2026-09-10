@@ -17,17 +17,23 @@ final class SyncManager {
 
     private(set) var state: State = .idle
     private(set) var storedCount: Int = 0
+    /// Estatísticas em cache: consultar o banco durante o redesenho da tela
+    /// coloca SQLite na main thread a cada frame.
+    private(set) var stats: ZiriStore.Stats?
 
     private var key: PairingKey? { Keychain.pairingKey }
 
     var isPaired: Bool { key != nil }
 
     init() {
-        refreshCount()
         if key == nil { state = .unpaired }
+        Task { await refresh() }
     }
 
-    func refreshCount() { storedCount = MessageStore.shared.count }
+    func refresh() async {
+        stats = await MessageStore.shared.stats
+        storedCount = stats?.messages ?? 0
+    }
 
     func pair(withCode code: String) -> Bool {
         guard let key = PairingKey.fromCode(code) else { return false }
@@ -50,12 +56,12 @@ final class SyncManager {
             let endpoint = try await client.discover()
 
             var received = 0
-            var since = try MessageStore.shared.watermark
+            var since = await MessageStore.shared.watermark
             while true {
                 state = .syncing("baixando… (\(received))")
                 let resp = try await client.fetch(from: endpoint, since: since)
                 guard !resp.messages.isEmpty else { break }
-                try MessageStore.shared.ingest(resp.messages)
+                try await MessageStore.shared.ingest(resp.messages)
                 received += resp.messages.count
                 since = resp.messages.last?.sentAt
                 if !resp.hasMore { break }
@@ -64,7 +70,7 @@ final class SyncManager {
             state = .syncing("indexando para a Siri…")
             let indexed = try await Indexer.shared.indexPending()
 
-            refreshCount()
+            await refresh()
             state = .done(received: received, indexed: indexed, at: Date())
         } catch {
             state = .failed("\(error)")

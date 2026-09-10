@@ -10,7 +10,7 @@ struct ContentView: View {
                 if sync.isPaired {
                     Section("histórico") {
                         LabeledContent("mensagens", value: "\(sync.storedCount)")
-                        if let s = MessageStore.shared.stats {
+                        if let s = sync.stats {
                             LabeledContent("conversas", value: "\(s.chats) (\(s.groups) grupos)")
                             if let last = s.last {
                                 LabeledContent("mais recente", value: last.formatted(date: .abbreviated, time: .shortened))

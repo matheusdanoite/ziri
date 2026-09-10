@@ -25,7 +25,7 @@ actor Indexer {
         var cursor = lastIndexed
         var total = 0
         while true {
-            let batch = try MessageStore.shared.messages(since: cursor, limit: batchSize)
+            let batch = try await MessageStore.shared.messages(since: cursor, limit: batchSize)
             guard !batch.isEmpty else { break }
             let entities = batch.map(ZiriMessageEntity.init(from:))
             try await CSSearchableIndex.default().indexAppEntities(entities)

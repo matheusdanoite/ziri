@@ -205,23 +205,23 @@ struct ZiriCustomAttachment {
 /// falamos", a busca por string cobre nomes e termos exatos.
 struct ZiriMessageQuery: EntityStringQuery {
     func entities(for identifiers: [String]) async throws -> [ZiriMessageEntity] {
-        try MessageStore.shared.messages(withIDs: identifiers).map(ZiriMessageEntity.init(from:))
+        try await MessageStore.shared.messages(withIDs: identifiers).map(ZiriMessageEntity.init(from:))
     }
 
     func entities(matching string: String) async throws -> [ZiriMessageEntity] {
-        try MessageStore.shared.search(string, limit: 50).map(ZiriMessageEntity.init(from:))
+        try await MessageStore.shared.search(string, limit: 50).map(ZiriMessageEntity.init(from:))
     }
 }
 
 struct ZiriPersonQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [ZiriPersonEntity] {
-        try MessageStore.shared.people(withIDs: identifiers)
+        try await MessageStore.shared.people(withIDs: identifiers)
     }
 }
 
 struct ZiriConversationQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [ZiriConversationEntity] {
-        try MessageStore.shared.conversations(withIDs: identifiers)
+        try await MessageStore.shared.conversations(withIDs: identifiers)
     }
 }
 
