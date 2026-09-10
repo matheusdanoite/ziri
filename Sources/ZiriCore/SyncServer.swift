@@ -75,14 +75,32 @@ public final class SyncServer: @unchecked Sendable {
                 let resp = SyncResponse(messages: messages, hasMore: messages.count == req.limit)
                 let payload = try SyncProtocol.encoder.encode(resp)
                 onEvent?("sync: \(messages.count) mensagens desde \(req.sinceDate.map(String.init(describing:)) ?? "sempre")")
-                conn.send(content: SyncProtocol.frame(payload), completion: .contentProcessed { _ in
-                    conn.cancel()
+                // Cancelar logo após o send manda RST (visível como flags=[R] no
+                // log do cliente) e pode truncar um lote grande. O fecho correto
+                // é sinalizar EOF e só then cancelar, quando o cliente já leu.
+                conn.send(content: SyncProtocol.frame(payload), completion: .contentProcessed { [weak self] error in
+                    if let error {
+                        self?.onEvent?("erro no envio: \(error)")
+                        conn.cancel()
+                        return
+                    }
+                    conn.send(content: nil, contentContext: .finalMessage, isComplete: true,
+                              completion: .contentProcessed { _ in })
+                    self?.closeWhenPeerFinishes(conn)
                 })
             } catch {
                 onEvent?("erro no pedido: \(error)")
                 conn.cancel()
             }
         }
+    }
+
+    /// Espera o cliente encerrar (ou 10s) antes de soltar a conexão.
+    private func closeWhenPeerFinishes(_ conn: NWConnection) {
+        conn.receive(minimumIncompleteLength: 1, maximumLength: 1) { _, _, isComplete, _ in
+            if isComplete { conn.cancel() }
+        }
+        queue.asyncAfter(deadline: .now() + 10) { conn.cancel() }
     }
 
     private func receiveFrame(_ conn: NWConnection, _ done: @escaping @Sendable (Data?) -> Void) {
