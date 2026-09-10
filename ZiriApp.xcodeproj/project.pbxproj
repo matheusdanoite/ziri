@@ -23,7 +23,7 @@
 		75FC07E279FE3B927F2931F2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		7C18A6CA4E8618EF55958B44 /* MessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageStore.swift; sourceTree = "<group>"; };
 		990C7EB020F9D92B08278F82 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
-		C877995814CDE60A3FDB11F8 /* ZiriApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZiriApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C877995814CDE60A3FDB11F8 /* ZiriApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ZiriApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEFA8D7C75A046F72A435595 /* ZiriApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZiriApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -110,6 +110,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					87ADD39D7F4BCB092324649E = {
+						DevelopmentTeam = Z7KM7R2775;
 						ProvisioningStyle = Automatic;
 					};
 				};

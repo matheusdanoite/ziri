@@ -19,6 +19,20 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: fi.ziri.app
         MARKETING_VERSION: "0.1"
         SWIFT_VERSION: "6.0"
+        DEVELOPMENT_TEAM: Z7KM7R2775
+        CODE_SIGN_STYLE: Automatic
+        # Info.plist: chaves escalares ficam AQUI, arrays ficam no arquivo.
+        #
+        # Com GENERATE_INFOPLIST_FILE ligado, o painel Info do Xcode migra para
+        # build settings toda chave que tem equivalente INFOPLIST_KEY_* e reescreve
+        # o Info.plist sem ela. Se a chave só existir no .xcodeproj, o próximo
+        # `xcodegen generate` a apaga — e sem NSLocalNetworkUsageDescription o
+        # browse Bonjour volta a falhar com NoAuth(-65555), sem alerta nenhum.
+        #
+        # NSBonjourServices e CFBundleURLTypes são arrays: INFOPLIST_KEY_* só gera
+        # string, e NSBonjourServices como string é ignorado pelo iOS. Esses ficam
+        # em ZiriApp/Info.plist, onde o Xcode não mexe.
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: ZiriApp/Info.plist
-        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_KEY_CFBundleDisplayName: ziri
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "O ziri sincroniza seu histórico do WhatsApp direto do seu Mac, pela rede local. Nada sai da sua rede."
