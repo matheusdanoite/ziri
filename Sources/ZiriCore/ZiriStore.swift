@@ -128,3 +128,80 @@ public final class ZiriStore {
         }
     }
 }
+
+// MARK: - Consultas usadas pelas entidades do App Intents
+
+public struct ZParty: Sendable {
+    public let id: String
+    public let name: String
+    public let isGroup: Bool
+}
+
+extension ZiriStore {
+    func rows(_ sql: String) throws -> [ZMessage] {
+        var out: [ZMessage] = []
+        try db.query(sql) { s in
+            out.append(ZMessage(
+                id: s.string(0) ?? "",
+                sentAt: Date(timeIntervalSince1970: s.double(1)),
+                chatJID: s.string(2) ?? "",
+                chatName: s.string(3) ?? "",
+                isGroup: s.bool(4),
+                fromMe: s.bool(5),
+                senderID: s.string(6) ?? "",
+                sender: s.string(7) ?? "",
+                body: s.string(8) ?? "",
+                replyTo: s.string(9)
+            ))
+        }
+        return out
+    }
+
+    static func quote(_ s: String) -> String {
+        "'" + s.replacingOccurrences(of: "'", with: "''") + "'"
+    }
+
+    static let columns =
+        "id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to"
+
+    public func messages(withIDs ids: [String]) throws -> [ZMessage] {
+        guard !ids.isEmpty else { return [] }
+        let list = ids.map(Self.quote).joined(separator: ",")
+        return try rows("SELECT \(Self.columns) FROM message WHERE id IN (\(list))")
+    }
+
+    public func search(_ text: String, limit: Int = 50) throws -> [ZMessage] {
+        let needle = Self.quote("%\(text)%")
+        return try rows("""
+        SELECT \(Self.columns) FROM message
+        WHERE body LIKE \(needle) OR sender LIKE \(needle) OR chat_name LIKE \(needle)
+        ORDER BY sent_at DESC LIMIT \(limit)
+        """)
+    }
+
+    public func people(withIDs ids: [String]) throws -> [ZParty] {
+        guard !ids.isEmpty else { return [] }
+        let list = ids.map(Self.quote).joined(separator: ",")
+        var out: [ZParty] = []
+        try db.query("""
+        SELECT sender_id, sender FROM message
+        WHERE sender_id IN (\(list)) GROUP BY sender_id
+        """) { s in
+            out.append(ZParty(id: s.string(0) ?? "", name: s.string(1) ?? "", isGroup: false))
+        }
+        return out
+    }
+
+    public func conversations(withIDs ids: [String]) throws -> [ZParty] {
+        guard !ids.isEmpty else { return [] }
+        let list = ids.map(Self.quote).joined(separator: ",")
+        var out: [ZParty] = []
+        try db.query("""
+        SELECT chat_jid, chat_name, is_group FROM message
+        WHERE chat_jid IN (\(list)) GROUP BY chat_jid
+        """) { s in
+            out.append(ZParty(id: s.string(0) ?? "", name: s.string(1) ?? "", isGroup: s.bool(2)))
+        }
+        return out
+    }
+}

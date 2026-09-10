@@ -23,7 +23,7 @@ public final class SyncServer: @unchecked Sendable {
 
         let listener = try NWListener(using: params, on: port)
         listener.service = NWListener.Service(
-            name: "ziri-\(Host.current().localizedName ?? "mac")",
+            name: "ziri-\(ProcessInfo.processInfo.hostName.replacingOccurrences(of: ".local", with: ""))",
             type: SyncProtocol.serviceType
         )
         listener.newConnectionHandler = { [weak self] conn in
