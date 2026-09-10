@@ -228,3 +228,45 @@ struct ZiriConversationQuery: EntityQuery {
 struct ZiriAttachmentQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [ZiriCustomAttachment] { [] }
 }
+
+// MARK: - Abrir a origem
+
+/// O que roda quando você toca na citação que a Siri exibe.
+///
+/// O WhatsApp não tem deep link público para uma mensagem específica — só
+/// `whatsapp://send?phone=`, que abre a conversa com um número. Então o melhor
+/// possível é: conversa certa quando o chat tem telefone na agenda; nos demais
+/// (grupos e contatos fora da agenda, que só têm LID), a mensagem dentro do ziri.
+struct OpenZiriMessageIntent: OpenIntent {
+    static let title: LocalizedStringResource = "Abrir conversa no WhatsApp"
+
+    /// Sem isso o ziri vem para a frente antes de repassar para o WhatsApp.
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Mensagem")
+    var target: ZiriMessageEntity
+
+    func perform() async throws -> some IntentResult {
+        if let phone = await MessageStore.shared.chatPhone(forMessageID: target.id),
+           let url = URL(string: "whatsapp://send?phone=\(phone)") {
+            return .result(opensIntent: OpenURLIntent(url))
+        }
+        return .result(opensIntent: OpenURLIntent(ZiriLink.message(target.id)))
+    }
+}
+
+enum ZiriLink {
+    static func message(_ id: String) -> URL {
+        var c = URLComponents()
+        c.scheme = "ziri"
+        c.host = "message"
+        c.queryItems = [URLQueryItem(name: "id", value: id)]
+        return c.url!
+    }
+
+    static func messageID(from url: URL) -> String? {
+        guard url.scheme == "ziri", url.host == "message" else { return nil }
+        return URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == "id" }?.value
+    }
+}

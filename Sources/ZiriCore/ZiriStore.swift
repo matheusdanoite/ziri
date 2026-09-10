@@ -26,13 +26,39 @@ public final class ZiriStore {
           sender_id TEXT NOT NULL DEFAULT '',
           sender   TEXT NOT NULL,
           body     TEXT NOT NULL,
-          reply_to TEXT
+          reply_to TEXT,
+          chat_phone TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_message_sent_at ON message(sent_at);
         CREATE INDEX IF NOT EXISTS idx_message_chat ON message(chat_jid, sent_at);
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         """)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
+        try migrate()
+    }
+
+    /// Stores criados antes da v2 não têm chat_phone. A marca d'água não reenvia
+    /// linhas antigas, então a migração pede uma ressincronização completa.
+    private func migrate() throws {
+        var hasPhone = false
+        try db.query("PRAGMA table_info(message)") { s in
+            if s.string(1) == "chat_phone" { hasPhone = true }
+        }
+        if !hasPhone {
+            try db.exec("ALTER TABLE message ADD COLUMN chat_phone TEXT")
+            try db.exec("INSERT OR REPLACE INTO meta (key, value) VALUES ('needs_full_resync', '1')")
+        }
+    }
+
+    /// Verdadeiro depois de uma migração que exige reprocessar o histórico inteiro.
+    public var needsFullResync: Bool {
+        get throws {
+            try db.scalarInt("SELECT COUNT(*) FROM meta WHERE key='needs_full_resync' AND value='1'") > 0
+        }
+    }
+
+    public func clearFullResync() throws {
+        try db.exec("DELETE FROM meta WHERE key='needs_full_resync'")
     }
 
     /// Data da mensagem mais recente já ingerida. Usada como marca d'água da extração.
@@ -55,9 +81,13 @@ public final class ZiriStore {
         try db.exec("BEGIN IMMEDIATE")
         do {
             let stmt = try db.prepare("""
-            INSERT OR IGNORE INTO message
-              (id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO message
+              (id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to, chat_phone)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET
+              chat_name = excluded.chat_name,
+              sender = excluded.sender,
+              chat_phone = COALESCE(excluded.chat_phone, message.chat_phone)
             """)
             defer { stmt.finalize() }
             for m in messages {
@@ -71,6 +101,7 @@ public final class ZiriStore {
                 stmt.bind(8, m.sender)
                 stmt.bind(9, m.body)
                 stmt.bind(10, m.replyTo)
+                stmt.bind(11, m.chatPhone)
                 try stmt.run()
             }
             try db.exec("COMMIT")
@@ -86,7 +117,7 @@ public final class ZiriStore {
         let cutoff = since?.timeIntervalSince1970 ?? 0
         var out: [ZMessage] = []
         try db.query("""
-        SELECT id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to
+        SELECT \(Self.columns)
         FROM message WHERE sent_at > \(cutoff)
         ORDER BY sent_at ASC LIMIT \(limit)
         """) { s in
@@ -100,7 +131,8 @@ public final class ZiriStore {
                 senderID: s.string(6) ?? "",
                 sender: s.string(7) ?? "",
                 body: s.string(8) ?? "",
-                replyTo: s.string(9)
+                replyTo: s.string(9),
+                chatPhone: s.string(10)
             ))
         }
         return out
@@ -151,7 +183,8 @@ extension ZiriStore {
                 senderID: s.string(6) ?? "",
                 sender: s.string(7) ?? "",
                 body: s.string(8) ?? "",
-                replyTo: s.string(9)
+                replyTo: s.string(9),
+                chatPhone: s.string(10)
             ))
         }
         return out
@@ -162,7 +195,7 @@ extension ZiriStore {
     }
 
     static let columns =
-        "id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to"
+        "id, sent_at, chat_jid, chat_name, is_group, from_me, sender_id, sender, body, reply_to, chat_phone"
 
     public func messages(withIDs ids: [String]) throws -> [ZMessage] {
         guard !ids.isEmpty else { return [] }

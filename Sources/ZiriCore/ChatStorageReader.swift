@@ -63,25 +63,41 @@ public struct ChatStorageReader {
 
     /// LID/JID → nome da agenda. O ChatStorage não guarda nome de participante
     /// de grupo: ZWAGROUPMEMBER.ZCONTACTNAME vem vazio em todas as linhas.
-    func contactNames() -> [String: String] {
-        guard FileManager.default.fileExists(atPath: contactsPath) else { return [:] }
+    struct Contacts {
+        var names: [String: String] = [:]
+        /// LID → dígitos do telefone, extraídos de ZWHATSAPPID (`<dígitos>@s.whatsapp.net`).
+        var phones: [String: String] = [:]
+    }
+
+    func contacts() -> Contacts {
+        guard FileManager.default.fileExists(atPath: contactsPath) else { return Contacts() }
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("ziri-contacts-\(UUID().uuidString).sqlite").path
         defer { try? FileManager.default.removeItem(atPath: tmp) }
         guard (try? snapshot(contactsPath, to: tmp)) != nil,
-              let db = try? DB(path: tmp, readOnly: true) else { return [:] }
+              let db = try? DB(path: tmp, readOnly: true) else { return Contacts() }
 
-        var map: [String: String] = [:]
+        var out = Contacts()
         try? db.query("""
         SELECT NULLIF(TRIM(ZLID),''), NULLIF(TRIM(ZWHATSAPPID),''),
                COALESCE(NULLIF(TRIM(ZFULLNAME),''), NULLIF(TRIM(ZGIVENNAME),''))
         FROM ZWAADDRESSBOOKCONTACT
         """) { s in
-            guard let name = s.string(2) else { return }
-            if let lid = s.string(0) { map[lid] = name }
-            if let wid = s.string(1) { map[wid] = name }
+            let lid = s.string(0), wid = s.string(1)
+            if let name = s.string(2) {
+                if let lid { out.names[lid] = name }
+                if let wid { out.names[wid] = name }
+            }
+            if let lid, let digits = wid.flatMap(Self.phoneDigits) { out.phones[lid] = digits }
         }
-        return map
+        return out
+    }
+
+    /// `5511999999999@s.whatsapp.net` → `5511999999999`. Qualquer outro domínio → nil.
+    static func phoneDigits(fromJID jid: String) -> String? {
+        guard jid.hasSuffix("@s.whatsapp.net") else { return nil }
+        let digits = String(jid.prefix { $0 != "@" })
+        return digits.isEmpty || !digits.allSatisfy(\.isNumber) ? nil : digits
     }
 
     /// Extrai mensagens com data estritamente maior que `since`.
@@ -91,7 +107,8 @@ public struct ChatStorageReader {
         try snapshot(sourcePath, to: snapshotPath)
         defer { try? FileManager.default.removeItem(atPath: snapshotPath) }
 
-        let names = contactNames()
+        let book = contacts()
+        let names = book.names
         let db = try DB(path: snapshotPath, readOnly: true)
         let cutoff = (watermark?.timeIntervalSince1970 ?? 0) - coreDataEpochOffset
 
@@ -130,7 +147,8 @@ public struct ChatStorageReader {
                 senderID: senderID,
                 sender: sender,
                 body: body,
-                replyTo: stmt.string(9)
+                replyTo: stmt.string(9),
+                chatPhone: isGroup ? nil : (book.phones[chatJID] ?? Self.phoneDigits(fromJID: chatJID))
             ))
         }
         return out

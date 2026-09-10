@@ -32,14 +32,21 @@ func ingest(_ store: ZiriStore, quiet: Bool = false) throws -> Int {
         if !quiet { print("✗ ChatStorage.sqlite não encontrado em \(ChatStorageReader.defaultPath)") }
         return 0
     }
-    let messages = try reader.messages(since: try store.watermark)
-    return try store.upsert(messages)
+    // Depois de uma migração de schema, reprocessa tudo: a marca d'água não
+    // traria de volta as linhas antigas que precisam dos campos novos.
+    let full = try store.needsFullResync
+    let messages = try reader.messages(since: full ? nil : try store.watermark)
+    let novas = try store.upsert(messages)
+    if full { try store.clearFullResync() }
+    return novas
 }
 
 func cmdExtract() throws {
     let store = try ZiriStore()
     let started = Date()
-    if let w = try store.watermark {
+    if try store.needsFullResync {
+        print("→ schema migrado: reprocessando o histórico completo…")
+    } else if let w = try store.watermark {
         print("→ extraindo mensagens após \(fmt.string(from: w))…")
     } else {
         print("→ primeira extração (histórico completo)…")
@@ -105,6 +112,8 @@ func cmdProbe(since: Date?, port: Int) async throws {
     let resp = try await client.fetch(from: endpoint, since: since)
     let elapsed = Date().timeIntervalSince(started)
     print("✓ \(resp.messages.count) mensagens em \(String(format: "%.2f", elapsed))s (hasMore: \(resp.hasMore))")
+    let withPhone = resp.messages.filter { $0.chatPhone != nil }.count
+    print("  com telefone (abrem no WhatsApp): \(withPhone)/\(resp.messages.count)")
     if let first = resp.messages.first, let last = resp.messages.last {
         print("  \(fmt.string(from: first.sentAt)) → \(fmt.string(from: last.sentAt))")
         print("  amostra: \(first.isGroup ? "[grupo] " : "")\(first.sender): \(first.body.prefix(40))…")

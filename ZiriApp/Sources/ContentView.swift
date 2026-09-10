@@ -1,8 +1,10 @@
 import SwiftUI
+import ZiriCore
 
 struct ContentView: View {
     @Bindable var sync: SyncManager
     @State private var code = ""
+    @State private var opened: ZMessage?
 
     var body: some View {
         NavigationStack {
@@ -42,6 +44,13 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("ziri")
+            .onOpenURL { url in
+                guard let id = ZiriLink.messageID(from: url) else { return }
+                Task { opened = try? await MessageStore.shared.messages(withIDs: [id]).first }
+            }
+            .sheet(isPresented: Binding(get: { opened != nil }, set: { if !$0 { opened = nil } })) {
+                if let opened { MessageDetail(message: opened) }
+            }
         }
     }
 
@@ -56,5 +65,32 @@ struct ContentView: View {
             Label("\(received) novas, \(indexed) indexadas — \(at.formatted(date: .omitted, time: .shortened))",
                   systemImage: "checkmark.circle.fill")
         }
+    }
+}
+
+/// Destino das citações que o WhatsApp não consegue abrir por link.
+struct MessageDetail: View {
+    let message: ZMessage
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text(message.body).textSelection(.enabled)
+                } header: {
+                    Text("\(message.fromMe ? "você" : message.sender) · \(message.sentAt.formatted(date: .abbreviated, time: .shortened))")
+                }
+                Section {
+                    LabeledContent("conversa", value: message.chatName)
+                } footer: {
+                    Text(message.isGroup
+                         ? "O WhatsApp não aceita abrir grupos por link — só por convite."
+                         : "Este contato não tem telefone na sua agenda, e o WhatsApp só abre conversas por link a partir de um número.")
+                }
+            }
+            .navigationTitle(message.isGroup ? "grupo" : "mensagem")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium, .large])
     }
 }

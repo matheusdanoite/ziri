@@ -56,7 +56,10 @@ final class SyncManager {
             let endpoint = try await client.discover()
 
             var received = 0
-            var since = await MessageStore.shared.watermark
+            // Migração de schema (ex.: chat_phone na v2) exige puxar tudo de novo:
+            // o upsert atualiza as linhas que já existem.
+            let full = await MessageStore.shared.needsFullResync
+            var since = full ? nil : await MessageStore.shared.watermark
             while true {
                 state = .syncing("baixando… (\(received))")
                 let resp = try await client.fetch(from: endpoint, since: since)
@@ -66,6 +69,8 @@ final class SyncManager {
                 since = resp.messages.last?.sentAt
                 if !resp.hasMore { break }
             }
+
+            if full { await MessageStore.shared.clearFullResync() }
 
             state = .syncing("indexando para a Siri…")
             let indexed = try await Indexer.shared.indexPending()

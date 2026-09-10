@@ -14,11 +14,14 @@ public struct ZMessage: Codable, Sendable, Hashable {
     public let sender: String
     public let body: String
     public let replyTo: String?
+    /// Telefone do chat 1:1 (só dígitos, com DDI). É o único identificador que
+    /// o WhatsApp aceita em deep link público; LID e JID de grupo não servem.
+    public let chatPhone: String?
 
     public init(
         id: String, sentAt: Date, chatJID: String, chatName: String,
         isGroup: Bool, fromMe: Bool, senderID: String, sender: String,
-        body: String, replyTo: String?
+        body: String, replyTo: String?, chatPhone: String? = nil
     ) {
         self.id = id
         self.sentAt = sentAt
@@ -30,6 +33,7 @@ public struct ZMessage: Codable, Sendable, Hashable {
         self.sender = sender
         self.body = body
         self.replyTo = replyTo
+        self.chatPhone = chatPhone
     }
 }
 

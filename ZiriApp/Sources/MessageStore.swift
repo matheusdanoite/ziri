@@ -26,6 +26,16 @@ actor MessageStore {
         return s
     }
 
+    var needsFullResync: Bool { (try? store?.needsFullResync) ?? false }
+
+    func clearFullResync() { try? store?.clearFullResync() }
+
+    /// Telefone do chat de uma mensagem — é o que o OpenIntent usa para montar
+    /// o deep link do WhatsApp.
+    func chatPhone(forMessageID id: String) -> String? {
+        (try? store?.messages(withIDs: [id]))?.first?.chatPhone
+    }
+
     @discardableResult
     func ingest(_ messages: [ZMessage]) throws -> Int {
         try store?.upsert(messages) ?? 0

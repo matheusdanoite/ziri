@@ -74,6 +74,18 @@ Descobertas medindo o banco real, não documentadas em lugar nenhum:
 - PSK externa no Network.framework só fecha handshake na suíte PSK de TLS 1.2;
   TLS 1.3 com suíte não-PSK falha com -9858.
 
+## Tocar na citação da Siri
+
+Abre a conversa de origem no WhatsApp (`OpenZiriMessageIntent`), com limites
+que vêm do próprio WhatsApp:
+
+- **Nunca a mensagem exata.** O único deep link público é
+  `whatsapp://send?phone=`, que abre a conversa com um número.
+- **1:1 com telefone na agenda** (~81% das mensagens): abre a conversa certa.
+  O telefone vem de `ContactsV2.ZWHATSAPPID`, resolvido a partir do LID do chat.
+- **Grupos e contatos fora da agenda**: só existe LID/JID de grupo, que nenhum
+  link público aceita. A citação abre a mensagem no próprio ziri (`ziri://message`).
+
 ## Permissão de rede local
 
 Obrigatória nos dois lados, e falha de formas diferentes:

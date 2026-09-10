@@ -6,6 +6,17 @@
 	<array>
 		<string>fi.ziri.app.sync</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>fi.ziri.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ziri</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_ziri._tcp</string>
