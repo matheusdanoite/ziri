@@ -74,6 +74,23 @@ Descobertas medindo o banco real, não documentadas em lugar nenhum:
 - PSK externa no Network.framework só fecha handshake na suíte PSK de TLS 1.2;
   TLS 1.3 com suíte não-PSK falha com -9858.
 
+## Permissão de rede local
+
+Obrigatória nos dois lados, e falha de formas diferentes:
+
+- **iPhone:** `NSBonjourServices` precisa ser **array** no Info.plist. Como
+  string, o iOS bloqueia o browse com `NoAuth(-65555)` e nunca mostra o alerta
+  de permissão. É por isso que o app usa `ZiriApp/Info.plist` de verdade em vez
+  de `INFOPLIST_KEY_*`, que só gera strings.
+- **Mac:** um LaunchAgent roda como usuário e está sujeito à privacidade de rede
+  local (LaunchDaemons rodando como root, não). O daemon só anuncia e escuta, o
+  que funciona; se negar, o toggle fica em Ajustes do Sistema → Privacidade e
+  Segurança → Rede Local.
+- **Terminal:** o Terminal da Apple é código responsável isento; iTerm, VS Code
+  e afins precisam da própria autorização para `ziri probe` funcionar.
+- O binário é assinado ad-hoc, então cada `swift build` muda a identidade — uma
+  permissão concedida pode não sobreviver a um rebuild.
+
 ## Privacidade
 
 O índice fica no aparelho (on-device/PCC). Contém mensagens de terceiros que

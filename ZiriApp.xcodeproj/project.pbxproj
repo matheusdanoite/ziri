@@ -279,11 +279,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = ziri;
-				INFOPLIST_KEY_NSBonjourServices = _ziri._tcp;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "O ziri sincroniza seu histórico do WhatsApp direto do seu Mac, pela rede local.";
-				INFOPLIST_KEY_UIBackgroundModes = processing;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = ZiriApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -303,11 +299,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = ziri;
-				INFOPLIST_KEY_NSBonjourServices = _ziri._tcp;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "O ziri sincroniza seu histórico do WhatsApp direto do seu Mac, pela rede local.";
-				INFOPLIST_KEY_UIBackgroundModes = processing;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = ZiriApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

@@ -13,12 +13,15 @@ public final class SyncClient: @unchecked Sendable {
 
     public enum SyncError: Error, CustomStringConvertible {
         case notFound
+        case localNetworkDenied
         case connectionFailed(String)
         case badResponse
 
         public var description: String {
             switch self {
             case .notFound: "nenhum servidor ziri encontrado na rede local"
+            case .localNetworkDenied:
+                "permissão de rede local negada — Ajustes → Privacidade e Segurança → Rede Local → ziri"
             case .connectionFailed(let m): "conexão falhou: \(m)"
             case .badResponse: "resposta inválida do servidor"
             }
@@ -39,6 +42,20 @@ public final class SyncClient: @unchecked Sendable {
                 guard let first = results.first, resumed.exchange(true) == false else { return }
                 browser.cancel()
                 cont.resume(returning: first.endpoint)
+            }
+            // NoAuth(-65555) chega como falha do browser, não como ausência de
+            // resultados: sem tratar isso, uma permissão negada vira "não
+            // encontrei nada" depois de 5s e ninguém descobre a causa.
+            browser.stateUpdateHandler = { state in
+                guard case .failed(let error) = state,
+                      resumed.exchange(true) == false else { return }
+                browser.cancel()
+                let denied = if case .dns(let code) = error {
+                    code == -65555
+                } else {
+                    false
+                }
+                cont.resume(throwing: denied ? SyncError.localNetworkDenied : SyncError.notFound)
             }
             browser.start(queue: queue)
             queue.asyncAfter(deadline: .now() + timeout) {

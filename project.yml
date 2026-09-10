@@ -20,9 +20,5 @@ targets:
         MARKETING_VERSION: "0.1"
         SWIFT_VERSION: "6.0"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: ziri
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "O ziri sincroniza seu histórico do WhatsApp direto do seu Mac, pela rede local."
-        INFOPLIST_KEY_NSBonjourServices: "_ziri._tcp"
-        INFOPLIST_KEY_UIBackgroundModes: processing
+        INFOPLIST_FILE: ZiriApp/Info.plist
         CODE_SIGN_STYLE: Automatic
