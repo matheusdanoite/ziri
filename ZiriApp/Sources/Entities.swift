@@ -99,10 +99,23 @@ struct ZiriMessageEntity: IndexedEntity {
     var reaction: ZiriReaction?
     var referencedMessage: ZiriMessageEntity?
 
+    /// É o card que a Siri mostra ao citar a mensagem. O nome aparece uma vez
+    /// só — numa conversa 1:1, autor e conversa são a mesma pessoa, e
+    /// "X em X" era o que aparecia. A origem fica no ícone e no subtítulo.
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(
-            title: "\(author.displayName) em \(conversation.displayName)",
-            subtitle: "\(body ?? "")"
+        let when = date.formatted(date: .abbreviated, time: .omitted)
+        let origin: String
+        if !conversation.isGroup {
+            origin = "WhatsApp · \(when)"
+        } else if author.id == "me" {
+            origin = "WhatsApp · você · \(when)"
+        } else {
+            origin = "WhatsApp · \(author.displayName) · \(when)"
+        }
+        return DisplayRepresentation(
+            title: "\(conversation.displayName)",
+            subtitle: "\(origin)",
+            image: .whatsApp
         )
     }
 
@@ -171,7 +184,11 @@ struct ZiriConversationEntity {
     var isGroup: Bool
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(displayName)", subtitle: isGroup ? "grupo" : "conversa")
+        DisplayRepresentation(
+            title: "\(displayName)",
+            subtitle: isGroup ? "Grupo no WhatsApp" : "Conversa no WhatsApp",
+            image: .whatsApp
+        )
     }
 
     static let defaultQuery = ZiriConversationQuery()
@@ -198,6 +215,12 @@ struct ZiriCustomAttachment {
     var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "anexo") }
 
     static let defaultQuery = ZiriAttachmentQuery()
+}
+
+extension DisplayRepresentation.Image {
+    /// Ícone do WhatsApp, do catálogo de assets do ziri. A origem do conteúdo
+    /// é o WhatsApp; o ziri é só a ponte e não deveria aparecer no card.
+    static let whatsApp = DisplayRepresentation.Image(named: "WhatsApp")
 }
 
 // MARK: - Queries

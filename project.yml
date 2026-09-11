@@ -20,6 +20,10 @@ targets:
         MARKETING_VERSION: "0.1"
         SWIFT_VERSION: "6.0"
         DEVELOPMENT_TEAM: Z7KM7R2775
+        # O XcodeGen aponta um AppIcon por padrão; com um catálogo de assets no
+        # alvo (o ícone do WhatsApp dos cards), o build passa a exigi-lo. O ziri
+        # ainda não tem ícone próprio.
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
         CODE_SIGN_STYLE: Automatic
         # Info.plist: chaves escalares ficam AQUI, arrays ficam no arquivo.
         #

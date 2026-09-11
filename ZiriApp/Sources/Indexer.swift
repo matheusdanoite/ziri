@@ -11,6 +11,13 @@ actor Indexer {
     private let batchSize = 500
     private let indexedKey = "ziri.lastIndexedAt"
 
+    /// Sobe sempre que muda a forma como a entidade aparece (título, ícone).
+    /// O índice guarda o displayRepresentation do momento da indexação, então
+    /// mudar o código não muda os cards da Siri até reindexar tudo.
+    /// v2: nome uma vez só + ícone do WhatsApp.
+    private let indexVersion = 2
+    private let versionKey = "ziri.indexVersion"
+
     var lastIndexed: Date? {
         get { UserDefaults.standard.object(forKey: indexedKey) as? Date }
     }
@@ -22,6 +29,12 @@ actor Indexer {
     /// Indexa tudo que chegou depois da última indexação.
     @discardableResult
     func indexPending() async throws -> Int {
+        // Zerar a marca d'água basta: reindexar com o mesmo id substitui o item.
+        // Se for interrompido, a próxima rodada continua do cursor da versão nova.
+        if UserDefaults.standard.integer(forKey: versionKey) != indexVersion {
+            UserDefaults.standard.removeObject(forKey: indexedKey)
+            UserDefaults.standard.set(indexVersion, forKey: versionKey)
+        }
         var cursor = lastIndexed
         var total = 0
         while true {
