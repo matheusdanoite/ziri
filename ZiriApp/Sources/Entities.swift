@@ -248,7 +248,10 @@ struct OpenZiriMessageIntent: OpenIntent {
     @Parameter(title: "Mensagem")
     var target: ZiriMessageEntity
 
-    func perform() async throws -> some IntentResult {
+    // `& OpensIntent` não é enfeite: sem ele o runtime descarta o OpenURLIntent
+    // devolvido ("Did not declare OpensIntent but provided one") e o toque só
+    // abre o ziri. O compilador aceita as duas assinaturas; quem valida é o sistema.
+    func perform() async throws -> some IntentResult & OpensIntent {
         openLog.notice("caminho: OpenIntent — mensagem \(target.id, privacy: .public)")
         return .result(opensIntent: OpenURLIntent(await ZiriOpener.destination(forMessageID: target.id)))
     }
