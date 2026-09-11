@@ -56,6 +56,7 @@ final class SyncManager {
             let endpoint = try await client.discover()
 
             var received = 0
+            var latestPhones: [String: String]?
             // Migração de schema (ex.: chat_phone na v2) exige puxar tudo de novo:
             // o upsert atualiza as linhas que já existem.
             let full = await MessageStore.shared.needsFullResync
@@ -63,6 +64,9 @@ final class SyncManager {
             while true {
                 state = .syncing("baixando… (\(received))")
                 let resp = try await client.fetch(from: endpoint, since: since)
+                // Antes do guard: a resposta vazia (nada novo) ainda traz o mapa
+                // atualizado, e é justamente o caso comum de um sync de rotina.
+                if let phones = resp.chatPhones { latestPhones = phones }
                 guard !resp.messages.isEmpty else { break }
                 try await MessageStore.shared.ingest(resp.messages)
                 received += resp.messages.count
@@ -71,6 +75,7 @@ final class SyncManager {
             }
 
             if full { await MessageStore.shared.clearFullResync() }
+            if let latestPhones { await MessageStore.shared.replaceChatPhones(latestPhones) }
 
             state = .syncing("indexando para a Siri…")
             let indexed = try await Indexer.shared.indexPending()

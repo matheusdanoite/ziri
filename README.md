@@ -30,6 +30,7 @@ WhatsApp para Mac
 ## Mac
 
 ```bash
+swift test                     # busca de telefone no toque, protocolo
 swift build -c release
 .build/release/ziri extract    # primeira carga
 .build/release/ziri status     # estado + código de pareamento
@@ -80,9 +81,17 @@ Abre a conversa de origem no WhatsApp (`OpenZiriMessageIntent`), com limites
 que vêm do próprio WhatsApp:
 
 - **Nunca a mensagem exata.** O único deep link público é
-  `whatsapp://send?phone=`, que abre a conversa com um número.
+  `whatsapp://send?phone=`, que abre a conversa com um número. A análise do
+  binário do WhatsApp para Mac (mesmo código do iOS, via Catalyst) confirma: a
+  navegação por mensagem existe só por dentro — o visualizador de mídia usa
+  `stanza_id` —, sem rota registrada no scheme. `chat_jid` e `message_id` no
+  binário são campos de GraphQL (eventos, IA) e de pagamentos, não de URL.
 - **1:1 com telefone na agenda** (~81% das mensagens): abre a conversa certa.
-  O telefone vem de `ContactsV2.ZWHATSAPPID`, resolvido a partir do LID do chat.
+  O telefone é resolvido **no toque**: cada resposta de sync traz o mapa
+  conversa→telefone completo, lido da agenda do WhatsApp naquele momento
+  (`ContactsV2.ZWHATSAPPID` por LID), e o iPhone o guarda em `chat_phone`,
+  separado das mensagens. Contato salvo depois passa a valer para o histórico
+  inteiro no próximo sync — e funciona offline, porque o mapa já está no iPhone.
 - **Grupos e contatos fora da agenda**: só existe LID/JID de grupo, que nenhum
   link público aceita. A citação abre a mensagem no próprio ziri (`ziri://message`).
 

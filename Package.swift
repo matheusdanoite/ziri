@@ -10,5 +10,6 @@ let package = Package(
     targets: [
         .target(name: "ZiriCore"),
         .executableTarget(name: "ziri", dependencies: ["ZiriCore"]),
+        .testTarget(name: "ZiriCoreTests", dependencies: ["ZiriCore"]),
     ]
 )

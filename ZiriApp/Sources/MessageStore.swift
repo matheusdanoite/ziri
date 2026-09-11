@@ -33,7 +33,12 @@ actor MessageStore {
     /// Telefone do chat de uma mensagem — é o que o OpenIntent usa para montar
     /// o deep link do WhatsApp.
     func chatPhone(forMessageID id: String) -> String? {
-        (try? store?.messages(withIDs: [id]))?.first?.chatPhone
+        guard let store else { return nil }
+        return (try? store.phone(forMessageID: id)) ?? nil
+    }
+
+    func replaceChatPhones(_ map: [String: String]) {
+        try? store?.replaceChatPhones(map)
     }
 
     @discardableResult

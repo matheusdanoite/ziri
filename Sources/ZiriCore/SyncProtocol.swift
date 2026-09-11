@@ -15,9 +15,16 @@ public struct SyncRequest: Codable, Sendable {
 public struct SyncResponse: Codable, Sendable {
     public let messages: [ZMessage]
     public let hasMore: Bool
-    public init(messages: [ZMessage], hasMore: Bool) {
+    /// Mapa conversa (LID) → telefone, completo e lido da agenda na hora do
+    /// pedido. Viaja separado das mensagens para que um contato salvo depois
+    /// passe a valer para o histórico inteiro, não só para mensagens novas.
+    /// Opcional: servidores antigos não mandam, e o decode continua funcionando.
+    public let chatPhones: [String: String]?
+
+    public init(messages: [ZMessage], hasMore: Bool, chatPhones: [String: String]? = nil) {
         self.messages = messages
         self.hasMore = hasMore
+        self.chatPhones = chatPhones
     }
 }
 

@@ -100,6 +100,9 @@ public struct ChatStorageReader {
         return digits.isEmpty || !digits.allSatisfy(\.isNumber) ? nil : digits
     }
 
+    /// Conversa (LID) → telefone, lido da agenda do WhatsApp agora.
+    public func chatPhones() -> [String: String] { contacts().phones }
+
     /// Extrai mensagens com data estritamente maior que `since`.
     public func messages(since watermark: Date?) throws -> [ZMessage] {
         let snapshotPath = FileManager.default.temporaryDirectory

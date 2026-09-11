@@ -69,6 +69,7 @@ func cmdServe(intervalMinutes: Int) throws {
     let store = try ZiriStore()
     let key = try PairingKey.loadOrCreate()
     let server = SyncServer(store: store, key: key)
+    server.phonesProvider = { ChatStorageReader().chatPhones() }
     server.onEvent = { log($0) }
 
     log("store com \(try! store.count) mensagens")
@@ -114,6 +115,7 @@ func cmdProbe(since: Date?, port: Int) async throws {
     print("✓ \(resp.messages.count) mensagens em \(String(format: "%.2f", elapsed))s (hasMore: \(resp.hasMore))")
     let withPhone = resp.messages.filter { $0.chatPhone != nil }.count
     print("  com telefone (abrem no WhatsApp): \(withPhone)/\(resp.messages.count)")
+    print("  mapa conversa→telefone: \(resp.chatPhones?.count ?? 0) conversas")
     if let first = resp.messages.first, let last = resp.messages.last {
         print("  \(fmt.string(from: first.sentAt)) → \(fmt.string(from: last.sentAt))")
         print("  amostra: \(first.isGroup ? "[grupo] " : "")\(first.sender): \(first.body.prefix(40))…")

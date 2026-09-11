@@ -32,6 +32,7 @@ public final class ZiriStore {
         CREATE INDEX IF NOT EXISTS idx_message_sent_at ON message(sent_at);
         CREATE INDEX IF NOT EXISTS idx_message_chat ON message(chat_jid, sent_at);
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS chat_phone (chat_jid TEXT PRIMARY KEY, phone TEXT NOT NULL);
         """)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
         try migrate()
@@ -59,6 +60,38 @@ public final class ZiriStore {
 
     public func clearFullResync() throws {
         try db.exec("DELETE FROM meta WHERE key='needs_full_resync'")
+    }
+
+    /// Substitui o mapa inteiro: contato removido da agenda some, contato novo
+    /// passa a valer para todas as mensagens daquela conversa.
+    public func replaceChatPhones(_ map: [String: String]) throws {
+        try db.exec("BEGIN IMMEDIATE")
+        do {
+            try db.exec("DELETE FROM chat_phone")
+            let stmt = try db.prepare("INSERT INTO chat_phone (chat_jid, phone) VALUES (?, ?)")
+            defer { stmt.finalize() }
+            for (jid, phone) in map {
+                stmt.bind(1, jid)
+                stmt.bind(2, phone)
+                try stmt.run()
+            }
+            try db.exec("COMMIT")
+        } catch {
+            try? db.exec("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Telefone da conversa de uma mensagem, resolvido na hora: o mapa atual
+    /// ganha; o valor gravado na importação é só fallback.
+    public func phone(forMessageID id: String) throws -> String? {
+        var out: String?
+        try db.query("""
+        SELECT COALESCE(p.phone, m.chat_phone) FROM message m
+        LEFT JOIN chat_phone p ON p.chat_jid = m.chat_jid
+        WHERE m.id = \(Self.quote(id))
+        """) { s in out = s.string(0) }
+        return out
     }
 
     /// Data da mensagem mais recente já ingerida. Usada como marca d'água da extração.

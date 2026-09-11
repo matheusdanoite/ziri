@@ -5,6 +5,8 @@ import Network
 /// nenhum servidor externo, nenhuma porta exposta fora da LAN.
 public final class SyncServer: @unchecked Sendable {
     let store: ZiriStore
+    /// Fonte do mapa conversa→telefone, consultada a cada pedido.
+    public var phonesProvider: (@Sendable () -> [String: String])?
     let key: PairingKey
     let port: NWEndpoint.Port
     var listener: NWListener?
@@ -72,7 +74,10 @@ public final class SyncServer: @unchecked Sendable {
             do {
                 let req = try SyncProtocol.decoder.decode(SyncRequest.self, from: data)
                 let messages = try store.messages(since: req.sinceDate, limit: req.limit)
-                let resp = SyncResponse(messages: messages, hasMore: messages.count == req.limit)
+                let resp = SyncResponse(
+                    messages: messages, hasMore: messages.count == req.limit,
+                    chatPhones: phonesProvider?()
+                )
                 let payload = try SyncProtocol.encoder.encode(resp)
                 onEvent?("sync: \(messages.count) mensagens desde \(req.sinceDate.map(String.init(describing:)) ?? "sempre")")
                 // Cancelar logo após o send manda RST (visível como flags=[R] no
