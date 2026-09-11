@@ -1,10 +1,13 @@
+import CoreSpotlight
 import SwiftUI
 import ZiriCore
+import os
 
 struct ContentView: View {
     @Bindable var sync: SyncManager
     @State private var code = ""
     @State private var opened: ZMessage?
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         NavigationStack {
@@ -45,12 +48,36 @@ struct ContentView: View {
             }
             .navigationTitle("ziri")
             .onOpenURL { url in
+                openLog.notice("caminho: link \(url.scheme ?? "?", privacy: .public)")
                 guard let id = ZiriLink.messageID(from: url) else { return }
                 Task { opened = try? await MessageStore.shared.messages(withIDs: [id]).first }
+            }
+            // O toque numa citação da Siri pode chegar como continuação do
+            // Spotlight em vez de OpenIntent — por isso as duas portas.
+            .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                openLog.notice("caminho: continuação do Spotlight/Siri")
+                guard let id = ZiriOpener.messageID(from: activity) else {
+                    openLog.error("continuação sem id: \(String(describing: activity.userInfo), privacy: .public)")
+                    return
+                }
+                openLog.notice("mensagem \(id, privacy: .public)")
+                Task { await open(messageID: id) }
+            }
+            .onContinueUserActivity(CSQueryContinuationActionType) { _ in
+                openLog.notice("caminho: continuação de busca, sem mensagem específica")
             }
             .sheet(isPresented: Binding(get: { opened != nil }, set: { if !$0 { opened = nil } })) {
                 if let opened { MessageDetail(message: opened) }
             }
+        }
+    }
+
+    private func open(messageID id: String) async {
+        let url = await ZiriOpener.destination(forMessageID: id)
+        if let local = ZiriLink.messageID(from: url) {
+            opened = try? await MessageStore.shared.messages(withIDs: [local]).first
+        } else {
+            openURL(url)
         }
     }
 

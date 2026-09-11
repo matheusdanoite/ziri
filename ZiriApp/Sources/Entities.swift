@@ -1,6 +1,7 @@
 import AppIntents
 import CoreLocation
 import LinkPresentation
+import os
 import CoreSpotlight
 import Foundation
 import ZiriCore
@@ -240,18 +241,41 @@ struct ZiriAttachmentQuery: EntityQuery {
 struct OpenZiriMessageIntent: OpenIntent {
     static let title: LocalizedStringResource = "Abrir conversa no WhatsApp"
 
-    /// Sem isso o ziri vem para a frente antes de repassar para o WhatsApp.
-    static let supportedModes: IntentModes = .background
+    // Sem `supportedModes = .background`: um OpenIntent que proíbe primeiro
+    // plano não era chamado no toque da citação. O preço é o ziri aparecer por
+    // um instante antes de repassar para o WhatsApp.
 
     @Parameter(title: "Mensagem")
     var target: ZiriMessageEntity
 
     func perform() async throws -> some IntentResult {
-        if let phone = await MessageStore.shared.chatPhone(forMessageID: target.id),
+        openLog.notice("caminho: OpenIntent — mensagem \(target.id, privacy: .public)")
+        return .result(opensIntent: OpenURLIntent(await ZiriOpener.destination(forMessageID: target.id)))
+    }
+}
+
+let openLog = Logger(subsystem: "fi.ziri.app", category: "open")
+
+/// Destino do toque, resolvido na hora e compartilhado por todas as portas de
+/// entrada: OpenIntent, continuação do Spotlight/Siri e link ziri://.
+enum ZiriOpener {
+    static func destination(forMessageID id: String) async -> URL {
+        if let phone = await MessageStore.shared.chatPhone(forMessageID: id),
            let url = URL(string: "whatsapp://send?phone=\(phone)") {
-            return .result(opensIntent: OpenURLIntent(url))
+            openLog.notice("destino: WhatsApp (conversa com telefone)")
+            return url
         }
-        return .result(opensIntent: OpenURLIntent(ZiriLink.message(target.id)))
+        openLog.notice("destino: ziri (conversa sem telefone)")
+        return ZiriLink.message(id)
+    }
+
+    /// Id da mensagem numa continuação do Spotlight/Siri. O sistema pode anotar a
+    /// activity com a entidade; se não anotar, o identificador do item indexado
+    /// ainda converte para ela.
+    static func messageID(from activity: NSUserActivity) -> String? {
+        if let entity = activity.appEntityIdentifier { return entity.identifier }
+        guard let raw = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return nil }
+        return EntityIdentifier(activityIdentifier: raw)?.identifier ?? raw
     }
 }
 
