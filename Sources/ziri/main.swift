@@ -25,8 +25,14 @@ func printStats(_ s: ZiriStore.Stats) {
     }
 }
 
+/// Carimbo dos arquivos do WhatsApp na última rodada que leu o banco.
+/// Só o timer do serve usa, e o DispatchSource nunca roda o handler em paralelo.
+final class SourceStampMemo: @unchecked Sendable {
+    var last: [Date?] = []
+}
+
 @discardableResult
-func ingest(_ store: ZiriStore, quiet: Bool = false) throws -> Int {
+func ingest(_ store: ZiriStore, quiet: Bool = false, memo: SourceStampMemo? = nil) throws -> Int {
     let reader = ChatStorageReader()
     guard reader.sourceExists else {
         if !quiet { print("✗ ChatStorage.sqlite não encontrado em \(ChatStorageReader.defaultPath)") }
@@ -35,9 +41,16 @@ func ingest(_ store: ZiriStore, quiet: Bool = false) throws -> Int {
     // Depois de uma migração de schema, reprocessa tudo: a marca d'água não
     // traria de volta as linhas antigas que precisam dos campos novos.
     let full = try store.needsFullResync
+    // Pula a rodada se nenhum arquivo de origem mudou. Sem isso, o serve copia
+    // o banco inteiro a cada 5 min (~7 GB/dia de escrita no SSD). O carimbo é
+    // lido antes da extração: se o WhatsApp escrever no meio, a próxima rodada vê.
+    let stamp = reader.sourceStamp
+    if let memo, !full, stamp == memo.last { return 0 }
+
     let messages = try reader.messages(since: full ? nil : try store.watermark)
     let novas = try store.upsert(messages)
     if full { try store.clearFullResync() }
+    memo?.last = stamp
     return novas
 }
 
@@ -79,9 +92,10 @@ func cmdServe(intervalMinutes: Int) throws {
     let interval = TimeInterval(intervalMinutes * 60)
     let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
     timer.schedule(deadline: .now(), repeating: interval)
+    let memo = SourceStampMemo()
     timer.setEventHandler {
         do {
-            let novas = try ingest(store, quiet: true)
+            let novas = try ingest(store, quiet: true, memo: memo)
             if novas > 0 { log("ingeridas \(novas) novas mensagens") }
         } catch {
             log("erro na ingestão: \(error)")

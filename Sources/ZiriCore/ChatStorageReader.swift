@@ -53,6 +53,16 @@ public struct ChatStorageReader {
 
     public var sourceExists: Bool { FileManager.default.fileExists(atPath: sourcePath) }
 
+    /// Datas de modificação dos dois bancos e dos seus `-wal`. Se não mudou
+    /// nada desde a última rodada, não há mensagem nova — e dá para pular o
+    /// `VACUUM INTO`, que copia o banco inteiro (~26 MB) a cada leitura.
+    /// Arquivo ausente vira nil, então um `-wal` que aparece também conta.
+    public var sourceStamp: [Date?] {
+        [sourcePath, contactsPath]
+            .flatMap { [$0, $0 + "-wal"] }
+            .map { (try? FileManager.default.attributesOfItem(atPath: $0))?[.modificationDate] as? Date }
+    }
+
     /// Snapshot consistente via `VACUUM INTO` a partir de conexão somente-leitura.
     /// Resolve o WAL pendente sem tocar no banco original.
     func snapshot(_ path: String, to destination: String) throws {
