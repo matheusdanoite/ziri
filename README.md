@@ -49,6 +49,36 @@ open ZiriApp.xcodeproj
 Rode no aparelho (o índice semântico não existe no simulador), digite o código
 de pareamento que `ziri status` mostra e o app sincroniza e indexa.
 
+## Siri no Mac
+
+O mesmo índice semântico existe no macOS 27, e o ziri para Mac o alimenta com
+as conversas do WhatsApp desta máquina. Não há sync: o app lê o banco local do
+WhatsApp, guarda em `~/Library/Application Support/fi.ziri.mac/` e indexa aqui.
+
+```bash
+./install-mac-app.sh
+```
+
+Fica na barra de menus, sem ícone no Dock: mostra quantas mensagens estão na
+Siri, indexa de novo a cada 2 minutos (as rodadas sem mudança nos arquivos do
+WhatsApp não copiam nada), abre ao iniciar sessão se você quiser e tem o botão
+de apagar do índice, que também pausa a indexação.
+
+`Shared/` é o código comum aos dois aparelhos: entidades do App Intents,
+indexador, store e o ícone do WhatsApp. Cada aparelho mantém seu próprio índice.
+
+**Instale pelo script, não abra o build direto.** Abrir o app no mesmo instante
+em que o LaunchServices o registra (o que acontece com `open` num build recém
+compilado, e pode acontecer com o Run do Xcode) faz a auditoria do `linkd` falhar
+com `-10814`. O `linkd` não repete essa auditoria sozinho; sem ela o sistema não
+tem a metadata do App Intents do app, e cada doação ao índice espera 5 s e volta
+vazia. O sintoma é a indexação parecer travada, com o processo ocioso preso em
+`__NSXPCCONNECTION_IS_WAITING_FOR_A_SYNCHRONOUS_REPLY__`. O script registra o
+app, espera a auditoria terminar e só então o abre.
+
+Para diagnosticar: `/usr/bin/log show --predicate 'process == "linkd" AND eventMessage CONTAINS "fi.ziri.mac"'`.
+No zsh, `log` sem o caminho é um comando interno do shell e não mostra nada.
+
 ## Decisões e armadilhas do schema do WhatsApp
 
 Descobertas medindo o banco real, não documentadas em lugar nenhum:
@@ -68,6 +98,9 @@ Descobertas medindo o banco real, não documentadas em lugar nenhum:
 
 ## Decisões do lado da Siri
 
+- A metadata do App Intents vive no `linkd`, alimentada por uma auditoria
+  feita quando o app é registrado. Se ela falha, a indexação não dá erro: só
+  fica lenta demais para terminar. Ver "Siri no Mac".
 - `.messages.message` exige 17 propriedades. O compilador é a única
   documentação confiável do contrato — ele lista o que falta e os tipos exatos.
 - `reaction` é um **tipo união** (`@UnionValue`), não um opcional.

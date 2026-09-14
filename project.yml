@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: fi.ziri
   deploymentTarget:
     iOS: "27.0"
+    macOS: "27.0"
 packages:
   ZiriCore:
     path: .
@@ -10,7 +11,9 @@ targets:
   ZiriApp:
     type: application
     platform: iOS
-    sources: [ZiriApp/Sources]
+    # Shared: entidades do App Intents, indexador, store e o ícone do WhatsApp.
+    # É o mesmo código nos dois alvos — cada aparelho indexa localmente.
+    sources: [ZiriApp/Sources, Shared]
     dependencies:
       - package: ZiriCore
         product: ZiriCore
@@ -40,3 +43,28 @@ targets:
         INFOPLIST_FILE: ZiriApp/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: ziri
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "O ziri sincroniza seu histórico do WhatsApp direto do seu Mac, pela rede local. Nada sai da sua rede."
+  ZiriMac:
+    type: application
+    platform: macOS
+    # No Mac não há sync: o app lê o WhatsApp desta máquina e indexa aqui.
+    sources: [ZiriMac/Sources, Shared]
+    dependencies:
+      - package: ZiriCore
+        product: ZiriCore
+    settings:
+      base:
+        PRODUCT_NAME: ziri
+        PRODUCT_BUNDLE_IDENTIFIER: fi.ziri.mac
+        MARKETING_VERSION: "0.1"
+        SWIFT_VERSION: "6.0"
+        DEVELOPMENT_TEAM: Z7KM7R2775
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        # Sem App Sandbox: o ziri precisa ler o group container do WhatsApp.
+        ENABLE_APP_SANDBOX: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ZiriMac/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: ziri
+        # Só barra de menus: sem ícone no Dock, sem janela ao abrir.
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
