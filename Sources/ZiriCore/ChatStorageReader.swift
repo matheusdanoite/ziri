@@ -1,4 +1,6 @@
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 /// Lê o ChatStorage.sqlite do WhatsApp para Mac sem nunca escrever nele.
 public struct ChatStorageReader: Sendable {
@@ -38,6 +40,15 @@ public struct ChatStorageReader: Sendable {
       AND m.ZSTANZAID IS NOT NULL
       AND m.ZMESSAGEDATE > ?
     ORDER BY m.ZMESSAGEDATE ASC
+    """
+
+    /// Foto de perfil vigente de cada JID (conversa, grupo ou participante).
+    /// ZPATH é relativo ao group container e vem sem extensão: o arquivo é
+    /// `.thumb` (96×96) na maioria dos casos e `.jpg` (até 640×640) no resto.
+    /// Linha sem caminho de mídia é pedido em andamento ou foto removida.
+    static let photosSQL = """
+    SELECT ZJID, ZPATH FROM ZWAPROFILEPICTUREITEM
+    WHERE ZJID IS NOT NULL AND ZPATH LIKE 'Media/Profile/%'
     """
 
     let sourcePath: String
@@ -113,16 +124,60 @@ public struct ChatStorageReader: Sendable {
     /// Conversa (LID) → telefone, lido da agenda do WhatsApp agora.
     public func chatPhones() -> [String: String] { contacts().phones }
 
-    /// Extrai mensagens com data estritamente maior que `since`.
-    public func messages(since watermark: Date?) throws -> [ZMessage] {
+    /// O que uma leitura do banco traz: o delta de mensagens e o mapa
+    /// completo JID → foto de perfil, tirados da mesma cópia do banco.
+    public struct Extract: Sendable {
+        public let messages: [ZMessage]
+        /// JID → caminho da foto, relativo ao group container e sem extensão.
+        /// O caminho muda quando a foto muda (leva o id da foto), então serve
+        /// de versão: só o que mudou precisa ser lido do disco de novo.
+        public let photos: [String: String]
+    }
+
+    /// Extrai mensagens com data estritamente maior que `since`, e as fotos.
+    public func read(since watermark: Date?) throws -> Extract {
         let snapshotPath = FileManager.default.temporaryDirectory
             .appendingPathComponent("ziri-snapshot-\(UUID().uuidString).sqlite").path
         try snapshot(sourcePath, to: snapshotPath)
         defer { try? FileManager.default.removeItem(atPath: snapshotPath) }
 
+        let db = try DB(path: snapshotPath, readOnly: true)
+        var photos: [String: String] = [:]
+        // Tabela ausente (schema antigo ou mudado) não pode custar as mensagens.
+        try? db.query(Self.photosSQL) { s in
+            if let jid = s.string(0), let path = s.string(1) { photos[jid] = path }
+        }
+        return Extract(messages: try messages(in: db, since: watermark), photos: photos)
+    }
+
+    /// Bytes JPEG da foto em `path` (como vem em `Extract.photos`), prontos para
+    /// o card da Siri. A miniatura vai como está; a versão grande é reduzida,
+    /// porque o card não passa de ~130 px e cada foto viaja para o iPhone.
+    public func photoData(atPath path: String) -> Data? {
+        let base = URL(fileURLWithPath: (sourcePath as NSString).deletingLastPathComponent)
+            .appendingPathComponent(path)
+        if let thumb = try? Data(contentsOf: base.appendingPathExtension("thumb")) { return thumb }
+        guard let full = try? Data(contentsOf: base.appendingPathExtension("jpg")) else { return nil }
+        return Self.downscaled(full, maxPixels: 192) ?? full
+    }
+
+    static func downscaled(_ jpeg: Data, maxPixels: Int) -> Data? {
+        guard let src = CGImageSourceCreateWithData(jpeg as CFData, nil),
+              let image = CGImageSourceCreateThumbnailAtIndex(src, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+                  kCGImageSourceThumbnailMaxPixelSize: maxPixels,
+              ] as CFDictionary) else { return nil }
+        let out = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(out, UTType.jpeg.identifier as CFString, 1, nil)
+        else { return nil }
+        CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
+        return CGImageDestinationFinalize(dest) ? out as Data : nil
+    }
+
+    func messages(in db: DB, since watermark: Date?) throws -> [ZMessage] {
         let book = contacts()
         let names = book.names
-        let db = try DB(path: snapshotPath, readOnly: true)
         let cutoff = (watermark?.timeIntervalSince1970 ?? 0) - coreDataEpochOffset
 
         let stmt = try db.prepare(Self.extractSQL)

@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Store normalizado do ziri. É a fonte que o iPhone consome — o ChatStorage do
@@ -33,6 +34,7 @@ public final class ZiriStore {
         CREATE INDEX IF NOT EXISTS idx_message_chat ON message(chat_jid, sent_at);
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS chat_phone (chat_jid TEXT PRIMARY KEY, phone TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS chat_photo (jid TEXT PRIMARY KEY, source TEXT NOT NULL, jpeg BLOB NOT NULL);
         """)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
         try migrate()
@@ -82,6 +84,126 @@ public final class ZiriStore {
         }
     }
 
+    // MARK: Fotos de perfil
+    //
+    // Uma tabela só para conversas, grupos e participantes: o JID já diz quem é.
+    // No Mac, `source` é o caminho da foto no WhatsApp; no iPhone fica vazio.
+
+    /// Mac: alinha a tabela com o mapa JID → caminho lido do WhatsApp. Só lê do
+    /// disco (`load`) as fotos cujo caminho mudou; JID fora do mapa perdeu a foto.
+    public func syncPhotos(_ paths: [String: String], load: (String) -> Data?) throws {
+        var current: [String: String] = [:]
+        try db.query("SELECT jid, source FROM chat_photo") { s in
+            if let jid = s.string(0) { current[jid] = s.string(1) ?? "" }
+        }
+        let gone = current.keys.filter { paths[$0] == nil }
+        let changed = paths.filter { current[$0.key] != $0.value }
+        guard !gone.isEmpty || !changed.isEmpty else { return }
+
+        try db.exec("BEGIN IMMEDIATE")
+        do {
+            let del = try db.prepare("DELETE FROM chat_photo WHERE jid = ?")
+            defer { del.finalize() }
+            for jid in gone {
+                del.bind(1, jid)
+                try del.run()
+            }
+            let put = try db.prepare("INSERT OR REPLACE INTO chat_photo (jid, source, jpeg) VALUES (?, ?, ?)")
+            defer { put.finalize() }
+            for (jid, path) in changed {
+                // Arquivo ainda não baixado pelo WhatsApp: fica de fora e a
+                // próxima leitura tenta de novo, já que o caminho não foi gravado.
+                guard let jpeg = load(path) else { continue }
+                put.bind(1, jid)
+                put.bind(2, path)
+                put.bind(3, jpeg)
+                try put.run()
+            }
+            try db.exec("COMMIT")
+        } catch {
+            try? db.exec("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Só as fotos de quem aparece nas mensagens: o WhatsApp guarda também as
+    /// de canais e de participantes de grupos que não estão no histórico.
+    static let knownPhotosFilter =
+        "jid IN (SELECT chat_jid FROM message) OR jid IN (SELECT sender_id FROM message)"
+
+    /// Mac: identifica o conjunto de fotos que o iPhone deveria ter. Muda quando
+    /// qualquer foto muda; igual ao que o iPhone mandou, as fotos não viajam.
+    public var photosVersion: String {
+        get throws {
+            var hasher = SHA256()
+            try db.query("SELECT jid, source FROM chat_photo WHERE \(Self.knownPhotosFilter) ORDER BY jid") { s in
+                hasher.update(data: Data("\(s.string(0) ?? "")\t\(s.string(1) ?? "")\n".utf8))
+            }
+            return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        }
+    }
+
+    /// Mac: JID → JPEG, o que vai para o iPhone.
+    public func knownPhotos() throws -> [String: Data] {
+        var out: [String: Data] = [:]
+        try db.query("SELECT jid, jpeg FROM chat_photo WHERE \(Self.knownPhotosFilter)") { s in
+            if let jid = s.string(0), let jpeg = s.data(1) { out[jid] = jpeg }
+        }
+        return out
+    }
+
+    /// iPhone: substitui o mapa inteiro e devolve os JIDs cuja foto mudou
+    /// (nova, trocada ou removida) — as mensagens deles precisam de novo card.
+    @discardableResult
+    public func replacePhotos(_ map: [String: Data]) throws -> Set<String> {
+        let current = try photos(for: nil)
+        var changed = Set(current.keys.filter { map[$0] == nil })
+        changed.formUnion(map.keys.filter { current[$0] != map[$0] })
+        guard !changed.isEmpty else { return [] }
+
+        try db.exec("BEGIN IMMEDIATE")
+        do {
+            try db.exec("DELETE FROM chat_photo")
+            let put = try db.prepare("INSERT INTO chat_photo (jid, source, jpeg) VALUES (?, '', ?)")
+            defer { put.finalize() }
+            for (jid, jpeg) in map {
+                put.bind(1, jid)
+                put.bind(2, jpeg)
+                try put.run()
+            }
+            try db.exec("COMMIT")
+        } catch {
+            try? db.exec("ROLLBACK")
+            throw error
+        }
+        return changed
+    }
+
+    /// Fotos dos JIDs pedidos; `nil` traz todas.
+    public func photos(for jids: Set<String>?) throws -> [String: Data] {
+        if let jids, jids.isEmpty { return [:] }
+        let filter = jids.map { "WHERE jid IN (\($0.map(Self.quote).joined(separator: ",")))" } ?? ""
+        var out: [String: Data] = [:]
+        try db.query("SELECT jid, jpeg FROM chat_photo \(filter)") { s in
+            if let jid = s.string(0), let jpeg = s.data(1) { out[jid] = jpeg }
+        }
+        return out
+    }
+
+    public func meta(_ key: String) throws -> String? {
+        var out: String?
+        try db.query("SELECT value FROM meta WHERE key = \(Self.quote(key))") { s in out = s.string(0) }
+        return out
+    }
+
+    public func setMeta(_ key: String, _ value: String?) throws {
+        if let value {
+            try db.exec("INSERT OR REPLACE INTO meta (key, value) VALUES (\(Self.quote(key)), \(Self.quote(value)))")
+        } else {
+            try db.exec("DELETE FROM meta WHERE key = \(Self.quote(key))")
+        }
+    }
+
     /// Telefone da conversa de uma mensagem, resolvido na hora: o mapa atual
     /// ganha; o valor gravado na importação é só fallback.
     public func phone(forMessageID id: String) throws -> String? {
@@ -104,6 +226,11 @@ public final class ZiriStore {
 
     public var count: Int {
         get throws { try db.scalarInt("SELECT COUNT(*) FROM message") }
+    }
+
+    /// Mensagens depois de `since` — o que falta indexar a partir de um cursor.
+    public func count(since: Date?) throws -> Int {
+        try db.scalarInt("SELECT COUNT(*) FROM message WHERE sent_at > \(since?.timeIntervalSince1970 ?? 0)")
     }
 
     /// Insere ignorando duplicatas por id. Retorna quantas linhas eram novas.
@@ -234,6 +361,19 @@ extension ZiriStore {
         guard !ids.isEmpty else { return [] }
         let list = ids.map(Self.quote).joined(separator: ",")
         return try rows("SELECT \(Self.columns) FROM message WHERE id IN (\(list))")
+    }
+
+    /// Mensagens de ou para estes JIDs (conversa ou remetente) até `until`, em
+    /// ordem cronológica a partir de `after` — o que reindexar quando uma foto muda.
+    public func messages(touching jids: Set<String>, after: Date?, until: Date, limit: Int) throws -> [ZMessage] {
+        guard !jids.isEmpty else { return [] }
+        let list = jids.map(Self.quote).joined(separator: ",")
+        return try rows("""
+        SELECT \(Self.columns) FROM message
+        WHERE (chat_jid IN (\(list)) OR sender_id IN (\(list)))
+          AND sent_at > \(after?.timeIntervalSince1970 ?? 0) AND sent_at <= \(until.timeIntervalSince1970)
+        ORDER BY sent_at ASC LIMIT \(limit)
+        """)
     }
 
     public func search(_ text: String, limit: Int = 50) throws -> [ZMessage] {

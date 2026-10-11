@@ -106,6 +106,9 @@ public final class Statement {
     public func bind(_ i: Int32, _ v: Double) { sqlite3_bind_double(stmt, i, v) }
     public func bind(_ i: Int32, _ v: Int) { sqlite3_bind_int64(stmt, i, Int64(v)) }
     public func bind(_ i: Int32, _ v: Bool) { sqlite3_bind_int(stmt, i, v ? 1 : 0) }
+    public func bind(_ i: Int32, _ v: Data) {
+        _ = v.withUnsafeBytes { sqlite3_bind_blob(stmt, i, $0.baseAddress, Int32($0.count), SQLITE_TRANSIENT) }
+    }
 
     public func string(_ i: Int32) -> String? {
         guard let c = sqlite3_column_text(stmt, i) else { return nil }
@@ -114,4 +117,8 @@ public final class Statement {
     public func int(_ i: Int32) -> Int { Int(sqlite3_column_int64(stmt, i)) }
     public func double(_ i: Int32) -> Double { sqlite3_column_double(stmt, i) }
     public func bool(_ i: Int32) -> Bool { sqlite3_column_int(stmt, i) != 0 }
+    public func data(_ i: Int32) -> Data? {
+        guard let p = sqlite3_column_blob(stmt, i) else { return nil }
+        return Data(bytes: p, count: Int(sqlite3_column_bytes(stmt, i)))
+    }
 }

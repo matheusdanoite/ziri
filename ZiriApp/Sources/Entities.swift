@@ -99,9 +99,12 @@ struct ZiriMessageEntity: IndexedEntity {
     var reaction: ZiriReaction?
     var referencedMessage: ZiriMessageEntity?
 
-    /// É o card que a Siri mostra ao citar a mensagem. O nome aparece uma vez
-    /// só — numa conversa 1:1, autor e conversa são a mesma pessoa, e
-    /// "X em X" era o que aparecia. A origem fica no subtítulo.
+    /// É o card que a Siri mostra ao citar a mensagem. Visto no iOS 27: ela usa
+    /// o título e a imagem, põe o ícone do ziri como selo no canto da imagem e
+    /// descarta o subtítulo, que só aparece em outros lugares (Spotlight, Atalhos).
+    /// O nome aparece uma vez só — numa conversa 1:1, autor e conversa são a
+    /// mesma pessoa, e "X em X" era o que aparecia. A imagem é a foto da
+    /// conversa (a do grupo, em grupos), com o símbolo como reserva.
     var displayRepresentation: DisplayRepresentation {
         let when = date.formatted(date: .abbreviated, time: .omitted)
         let origin: String
@@ -115,18 +118,19 @@ struct ZiriMessageEntity: IndexedEntity {
         return DisplayRepresentation(
             title: "\(conversation.displayName)",
             subtitle: "\(origin)",
-            image: .conversation
+            image: conversation.image
         )
     }
 
     static let defaultQuery = ZiriMessageQuery()
 
-    init(from m: ZMessage) {
+    /// `photos` é JID → JPEG; basta conter a conversa e o remetente.
+    init(from m: ZMessage, photos: [String: Data] = [:]) {
         id = m.id
-        author = ZiriPersonEntity(id: m.senderID, name: m.sender)
+        author = ZiriPersonEntity(id: m.senderID, name: m.sender, photo: photos[m.senderID])
         conversation = ZiriConversationEntity(
             id: m.chatJID, name: m.chatName, isGroup: m.isGroup,
-            lastActive: m.sentAt, preview: m.body
+            lastActive: m.sentAt, preview: m.body, photo: photos[m.chatJID]
         )
         subject = nil
         isRead = true
@@ -155,16 +159,31 @@ struct ZiriPersonEntity {
 
     var person: IntentPerson
 
-    var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "\(displayName)") }
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(displayName)", image: person.image)
+    }
 
     static let defaultQuery = ZiriPersonQuery()
 
-    init(id: String, name: String) {
+    /// O store grava "me" como id e nome das mensagens que você mandou.
+    static let meID = "me"
+
+    init(id: String, name: String, photo: Data? = nil) {
         self.id = id
+        let isMe = id == Self.meID
+        // "me" chegava literal à Siri ("me em Fulano"). Com `isMe` o sistema
+        // sabe que é o dono do aparelho; o nome cobre quem só lê o texto.
+        let shown = isMe ? "Você" : name
         // LID do WhatsApp não é telefone nem e-mail: applicationDefined é o
         // handle honesto aqui.
-        self.person = IntentPerson(handle: .init(applicationDefined: id, label: name))
-        self.displayName = name
+        self.person = IntentPerson(
+            identifier: .applicationDefined(id),
+            name: .displayName(shown),
+            handle: isMe ? nil : .init(applicationDefined: id, label: name),
+            isMe: isMe,
+            image: photo.map { DisplayRepresentation.Image(data: $0) }
+        )
+        self.displayName = shown
     }
 }
 
@@ -182,20 +201,30 @@ struct ZiriConversationEntity {
     var recipients: [ZiriPersonEntity]
     var attributes: Set<ZiriConversationAttribute>
     var isGroup: Bool
+    /// Foto de perfil da conversa (da pessoa ou do grupo), JPEG vindo do Mac.
+    var photo: Data?
+
+    var image: DisplayRepresentation.Image {
+        photo.map { DisplayRepresentation.Image(data: $0) } ?? .conversation
+    }
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
             title: "\(displayName)",
             subtitle: isGroup ? "Grupo no WhatsApp" : "Conversa no WhatsApp",
-            image: .conversation
+            image: image
         )
     }
 
     static let defaultQuery = ZiriConversationQuery()
 
-    init(id: String, name: String, isGroup: Bool, lastActive: Date = .now, preview: String? = nil) {
+    init(
+        id: String, name: String, isGroup: Bool, lastActive: Date = .now,
+        preview: String? = nil, photo: Data? = nil
+    ) {
         self.id = id
         self.isGroup = isGroup
+        self.photo = photo
         self.conversationName = name
         self.dateLastActive = lastActive
         self.isRead = true
@@ -218,8 +247,8 @@ struct ZiriCustomAttachment {
 }
 
 extension DisplayRepresentation.Image {
-    /// Símbolo genérico de conversa, não o logo do WhatsApp: o repositório é
-    /// público e o logo é marca da Meta. A origem aparece no subtítulo.
+    /// Reserva para conversa sem foto. Símbolo genérico, não o logo do
+    /// WhatsApp: o repositório é público e o logo é marca da Meta.
     static let conversation = DisplayRepresentation.Image(systemName: "bubble.left.and.text.bubble.right")
 }
 
@@ -229,11 +258,11 @@ extension DisplayRepresentation.Image {
 /// falamos", a busca por string cobre nomes e termos exatos.
 struct ZiriMessageQuery: EntityStringQuery {
     func entities(for identifiers: [String]) async throws -> [ZiriMessageEntity] {
-        try await MessageStore.shared.messages(withIDs: identifiers).map(ZiriMessageEntity.init(from:))
+        try await MessageStore.shared.messageEntities(withIDs: identifiers)
     }
 
     func entities(matching string: String) async throws -> [ZiriMessageEntity] {
-        try await MessageStore.shared.search(string, limit: 50).map(ZiriMessageEntity.init(from:))
+        try await MessageStore.shared.search(string, limit: 50)
     }
 }
 

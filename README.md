@@ -5,7 +5,8 @@ Ana falou sobre o orçamento?" — com base no histórico que já está no seu M
 
 Um agente invisível no Mac lê o banco local do WhatsApp para Mac e serve as
 mensagens de texto pela rede local. O app do iPhone as recebe e as entrega ao
-índice semântico do iOS, onde a Siri as encontra.
+índice semântico do iOS, onde a Siri as encontra. Quando a Siri cita uma
+mensagem, o card mostra o nome e a foto de perfil da conversa, como no WhatsApp.
 
 Nenhum servidor externo, nenhuma conexão com a API do WhatsApp, nenhum risco de
 banimento: só leitura do banco que já está no seu Mac, e a conexão entre Mac e
@@ -77,7 +78,8 @@ no índice da Siri vai junto. Para tirar só do índice e manter o app, use
 
 ```
 WhatsApp para Mac
-  └─ ChatStorage.sqlite ──VACUUM INTO (somente leitura)──┐
+  ├─ ChatStorage.sqlite ──VACUUM INTO (somente leitura)──┐
+  └─ Media/Profile/*.thumb|.jpg (fotos de perfil) ───────┤
                                                          ▼
                                  agente do ziri.app → ~/.ziri/store.sqlite
                                      (lê a cada pedido) │
@@ -100,6 +102,7 @@ Sources/ziri       CLI de diagnóstico
 ZiriMac            o agente do Mac
 ZiriApp            o app do iPhone: sync, entidades do App Intents, indexação
 Config             assinatura (ver abaixo)
+Tools              gerador do ícone do app do iPhone
 ```
 
 O `ZiriApp.xcodeproj` é gerado pelo [XcodeGen](https://github.com/yonaskolb/XcodeGen)
@@ -187,6 +190,12 @@ Descobertas medindo o banco real, não documentadas em lugar nenhum:
 - **Vários campos de nome são string vazia, não NULL** — `COALESCE` puro para na
   string vazia; é preciso `NULLIF(TRIM(x), '')`.
 - **`ZSTANZAID`** é a chave estável entre dispositivos. `Z_PK` não é.
+- **Fotos de perfil:** `ZWAPROFILEPICTUREITEM` liga cada JID (conversa, grupo,
+  participante, canal) a `ZPATH`, relativo ao group container e **sem
+  extensão**. No disco o arquivo é `<ZPATH>.thumb` (JPEG 96×96, ~2–3 KB) ou,
+  em poucos casos, `<ZPATH>.jpg` (até 640×640). O caminho leva o id da foto,
+  então muda quando a foto muda. Linhas sem `Media/Profile/…` são pedidos em
+  andamento ou fotos removidas.
 - O WAL fica com escritas pendentes: `VACUUM INTO` a partir de conexão
   somente-leitura resolve sem tocar no banco do WhatsApp.
 
@@ -198,6 +207,46 @@ Descobertas medindo o banco real, não documentadas em lugar nenhum:
 - `attributes` é `Set`, não `Array`.
 - PSK externa no Network.framework só fecha handshake na suíte PSK de TLS 1.2;
   TLS 1.3 com suíte não-PSK falha com -9858.
+
+## O card da Siri
+
+Observado no iOS 27 com a citação de uma mensagem: a Siri usa o **título** e a
+**imagem** do `displayRepresentation` da entidade, põe o **ícone do app** como
+selo no canto da imagem e **descarta o subtítulo**. Sem imagem, o card mostra o
+ícone do app; sem ícone no app, o quadrado em branco do iOS. O título é o nome
+da conversa (o de grupo, em grupos); "WhatsApp · data" fica no subtítulo, que
+só aparece em outros lugares.
+
+A imagem é a foto de perfil do WhatsApp, que vai em três lugares: na imagem da
+mensagem e da conversa, e em `IntentPerson.image` do remetente. Em grupos, a
+mensagem leva a foto do grupo e o remetente, a dele. Conversa sem foto usa um
+símbolo genérico de conversa. Não é o logo do WhatsApp, que é marca da Meta. As
+mensagens que você mandou têm `isMe` e o nome "Você", em vez do "me" que o
+store grava.
+
+Como as fotos chegam ao iPhone:
+
+- O agente lê o mapa JID → foto na mesma cópia do banco que já faz para as
+  mensagens, e só relê do disco as fotos cujo caminho mudou.
+- Só viajam fotos de quem aparece no histórico (~170 de ~620; canais ficam de
+  fora), ~650 KB no total. Vão na última página do sync e só quando a versão do
+  conjunto (SHA-256 de JID + caminho) difere da que o iPhone mandou no pedido.
+- O iPhone substitui o mapa e sabe de quem a foto mudou. O índice guarda o card
+  do momento da doação, então as mensagens dessas conversas e remetentes são
+  doadas de novo, sem refazer o resto.
+
+**O índice não atualiza sozinho.** Mudar o código do card não muda os cards
+já indexados. Toda mudança no que a entidade mostra sobe o `indexVersion` do
+`Indexer`, o que zera a marca d'água e reindexa tudo (~15 min para ~35 mil
+mensagens num iPhone 15 Pro).
+
+**Ícone.** `Tools/app-icon.swift` gera o ícone do app do iPhone, que também é o
+selo do card. Ele é desenhado só com caminhos próprios, porque a licença dos SF
+Symbols proíbe usá-los em ícone de app.
+
+```bash
+swift Tools/app-icon.swift ZiriApp/Sources/Assets.xcassets/AppIcon.appiconset/icon.png
+```
 
 ## Tocar na citação da Siri
 
@@ -240,8 +289,10 @@ Obrigatória nos dois lados, e falha de formas diferentes:
 ## Privacidade
 
 O índice fica no iPhone (on-device/PCC). Contém mensagens de terceiros que
-não consentiram — o app tem "apagar do índice da Siri" por isso. No Mac, o
-agente guarda as mensagens normalizadas em `~/.ziri/` (permissões 0700/0600);
+não consentiram — o app tem "apagar do índice da Siri" por isso. As fotos de
+perfil seguem o mesmo caminho: copiadas para `~/.ziri/store.sqlite` no Mac e
+para o store do app no iPhone, e entram no índice junto com as mensagens. No
+Mac, o agente guarda as mensagens normalizadas em `~/.ziri/` (permissões 0700/0600);
 na primeira abertura, a versão nova apaga o que a de barra de menus deixou no
 índice do Mac e em `~/Library/Application Support/fi.ziri.mac/`.
 

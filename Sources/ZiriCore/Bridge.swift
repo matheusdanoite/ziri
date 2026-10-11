@@ -65,8 +65,9 @@ public final class Bridge: @unchecked Sendable {
         let stamp = reader.sourceStamp
         if skipIfUnchanged, !full, stamp == lastStamp { return 0 }
 
-        let messages = try reader.messages(since: full ? nil : try store.watermark)
-        let novas = try store.upsert(messages)
+        let extract = try reader.read(since: full ? nil : try store.watermark)
+        let novas = try store.upsert(extract.messages)
+        try store.syncPhotos(extract.photos, load: reader.photoData(atPath:))
         if full { try store.clearFullResync() }
         lastStamp = stamp
         return novas

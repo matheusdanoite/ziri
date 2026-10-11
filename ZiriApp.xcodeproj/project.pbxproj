@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0199EE7E9FA37AE11AB80689 /* MessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C18A6CA4E8618EF55958B44 /* MessageStore.swift */; };
 		0708BFDE6CC07BE535E45A8C /* ZiriCore in Frameworks */ = {isa = PBXBuildFile; productRef = C44082307CEE79689C63239E /* ZiriCore */; };
+		091625621816DCA4AE0D815A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70FFCADAC65E51A02FCD683A /* Assets.xcassets */; };
 		275A0F68DD5F661D14D77CDB /* fi.ziri.mac.agent.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 78E0871FD961CD7BE2A0A9FA /* fi.ziri.mac.agent.plist */; };
 		3A1F818C434653AC74CD3674 /* ZiriCore in Frameworks */ = {isa = PBXBuildFile; productRef = 633A1EDFC662FD56F033406C /* ZiriCore */; };
 		502C6DA78201A0752FFF4539 /* ZiriApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEFA8D7C75A046F72A435595 /* ZiriApp.swift */; };
@@ -38,6 +39,7 @@
 		2397C67B11CBE73B8A5441FE /* PairingQR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingQR.swift; sourceTree = "<group>"; };
 		5178BA6C852A9B0B5D7E1FE9 /* Indexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Indexer.swift; sourceTree = "<group>"; };
 		6D3D9B83F0176FDCCA64EC96 /* Entities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entities.swift; sourceTree = "<group>"; };
+		70FFCADAC65E51A02FCD683A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		75FC07E279FE3B927F2931F2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		78E0871FD961CD7BE2A0A9FA /* fi.ziri.mac.agent.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = fi.ziri.mac.agent.plist; sourceTree = "<group>"; };
 		7C18A6CA4E8618EF55958B44 /* MessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageStore.swift; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@
 		18F596B4DF11F309F6166E7B /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				70FFCADAC65E51A02FCD683A /* Assets.xcassets */,
 				75FC07E279FE3B927F2931F2 /* ContentView.swift */,
 				6D3D9B83F0176FDCCA64EC96 /* Entities.swift */,
 				5178BA6C852A9B0B5D7E1FE9 /* Indexer.swift */,
@@ -146,6 +149,7 @@
 			buildConfigurationList = 87994211175DDBB2971E7B38 /* Build configuration list for PBXNativeTarget "ZiriApp" */;
 			buildPhases = (
 				219D39F5BE75AD72DCE0F0D6 /* Sources */,
+				C3792DEAA8E1E96729C0A53F /* Resources */,
 				3EE41FE5FEBCDB2B7E8BEB55 /* Frameworks */,
 			);
 			buildRules = (
@@ -221,6 +225,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C3792DEAA8E1E96729C0A53F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				091625621816DCA4AE0D815A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		219D39F5BE75AD72DCE0F0D6 /* Sources */ = {

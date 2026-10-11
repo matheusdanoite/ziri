@@ -78,12 +78,19 @@ public final class SyncServer: @unchecked Sendable {
                 let req = try SyncProtocol.decoder.decode(SyncRequest.self, from: data)
                 beforeResponse?()
                 let messages = try store.messages(since: req.sinceDate, limit: req.limit)
+                let hasMore = messages.count == req.limit
+                // Fotos só no fim: no meio de um sync completo, parte dos
+                // remetentes ainda não chegou e o filtro do iPhone ficaria curto.
+                let version = hasMore ? nil : try store.photosVersion
+                let photos = version != nil && version != req.photosVersion ? try store.knownPhotos() : nil
                 let resp = SyncResponse(
-                    messages: messages, hasMore: messages.count == req.limit,
-                    chatPhones: phonesProvider?()
+                    messages: messages, hasMore: hasMore,
+                    chatPhones: phonesProvider?(),
+                    chatPhotos: photos, photosVersion: photos == nil ? nil : version
                 )
                 let payload = try SyncProtocol.encoder.encode(resp)
-                onEvent?("sync: \(messages.count) mensagens desde \(req.sinceDate.map(String.init(describing:)) ?? "sempre")")
+                onEvent?("sync: \(messages.count) mensagens desde \(req.sinceDate.map(String.init(describing:)) ?? "sempre")"
+                         + (photos.map { ", \($0.count) fotos" } ?? ""))
                 // Cancelar logo após o send manda RST (visível como flags=[R] no
                 // log do cliente) e pode truncar um lote grande. O fecho correto
                 // é sinalizar EOF e só then cancelar, quando o cliente já leu.

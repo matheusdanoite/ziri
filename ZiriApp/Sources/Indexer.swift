@@ -16,7 +16,8 @@ actor Indexer {
     /// mudar o código não muda os cards da Siri até reindexar tudo.
     /// v2: nome uma vez só + ícone do WhatsApp.
     /// v3: símbolo de conversa no lugar do ícone do WhatsApp.
-    private let indexVersion = 3
+    /// v4: foto de perfil da conversa e do remetente; "Você" no lugar de "me".
+    private let indexVersion = 4
     private let versionKey = "ziri.indexVersion"
 
     var lastIndexed: Date? {
@@ -27,9 +28,18 @@ actor Indexer {
         UserDefaults.standard.set(date, forKey: indexedKey)
     }
 
-    /// Indexa tudo que chegou depois da última indexação.
+    /// Indexa tudo que chegou depois da última indexação. `progress` recebe
+    /// (feitas, total) a cada lote: uma reindexação completa leva ~15 minutos
+    /// (~14 s por lote de 500 num iPhone 15 Pro), e sem número na tela isso
+    /// parece travado.
+    ///
+    /// `refreshing` são JIDs cuja foto mudou: as mensagens já indexadas deles
+    /// são doadas de novo, porque o card guarda a foto do momento da doação.
     @discardableResult
-    func indexPending() async throws -> Int {
+    func indexPending(
+        refreshing photoChanges: Set<String> = [],
+        progress: (@Sendable (Int, Int) async -> Void)? = nil
+    ) async throws -> Int {
         // Zerar a marca d'água basta: reindexar com o mesmo id substitui o item.
         // Se for interrompido, a próxima rodada continua do cursor da versão nova.
         if UserDefaults.standard.integer(forKey: versionKey) != indexVersion {
@@ -38,14 +48,32 @@ actor Indexer {
         }
         var cursor = lastIndexed
         var total = 0
+        // Sem cursor, tudo vai ser indexado de qualquer jeito, já com as fotos novas.
+        // Uma interrupção aqui perde a renovação até a foto mudar de novo: o
+        // card fica com a foto anterior, que não é dado errado, só velho.
+        if let until = cursor, !photoChanges.isEmpty {
+            var after: Date?
+            while true {
+                let batch = try await MessageStore.shared.messages(
+                    touching: photoChanges, after: after, until: until, limit: batchSize
+                )
+                guard !batch.isEmpty else { break }
+                try await CSSearchableIndex.default().indexAppEntities(await MessageStore.shared.entities(batch))
+                total += batch.count
+                after = batch.last?.sentAt
+                if batch.count < batchSize { break }
+            }
+        }
+        let pending = await MessageStore.shared.count(since: cursor) + total
         while true {
             let batch = try await MessageStore.shared.messages(since: cursor, limit: batchSize)
             guard !batch.isEmpty else { break }
-            let entities = batch.map(ZiriMessageEntity.init(from:))
+            let entities = await MessageStore.shared.entities(batch)
             try await CSSearchableIndex.default().indexAppEntities(entities)
             total += entities.count
             cursor = batch.last?.sentAt
             if let cursor { setLastIndexed(cursor) }
+            await progress?(total, pending)
             if batch.count < batchSize { break }
         }
         return total

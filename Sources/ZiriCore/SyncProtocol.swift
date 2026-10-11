@@ -5,9 +5,13 @@ import CryptoKit
 public struct SyncRequest: Codable, Sendable {
     public let since: Double?
     public let limit: Int
-    public init(since: Date?, limit: Int = 5_000) {
+    /// Versão das fotos de perfil que o iPhone já tem. Igual à do Mac, as fotos
+    /// não viajam de novo — são ~1,5 MB e quase nunca mudam.
+    public let photosVersion: String?
+    public init(since: Date?, limit: Int = 5_000, photosVersion: String? = nil) {
         self.since = since?.timeIntervalSince1970
         self.limit = limit
+        self.photosVersion = photosVersion
     }
     public var sinceDate: Date? { since.map(Date.init(timeIntervalSince1970:)) }
 }
@@ -20,11 +24,21 @@ public struct SyncResponse: Codable, Sendable {
     /// passe a valer para o histórico inteiro, não só para mensagens novas.
     /// Opcional: servidores antigos não mandam, e o decode continua funcionando.
     public let chatPhones: [String: String]?
+    /// JID (conversa, grupo ou participante) → JPEG da foto de perfil, completo.
+    /// Só vem na última página e só quando `photosVersion` difere da do pedido;
+    /// nil quer dizer "nada mudou", não "ninguém tem foto".
+    public let chatPhotos: [String: Data]?
+    public let photosVersion: String?
 
-    public init(messages: [ZMessage], hasMore: Bool, chatPhones: [String: String]? = nil) {
+    public init(
+        messages: [ZMessage], hasMore: Bool, chatPhones: [String: String]? = nil,
+        chatPhotos: [String: Data]? = nil, photosVersion: String? = nil
+    ) {
         self.messages = messages
         self.hasMore = hasMore
         self.chatPhones = chatPhones
+        self.chatPhotos = chatPhotos
+        self.photosVersion = photosVersion
     }
 }
 

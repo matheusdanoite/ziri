@@ -66,7 +66,9 @@ public final class SyncClient: @unchecked Sendable {
         }
     }
 
-    public func fetch(from endpoint: NWEndpoint, since: Date?, limit: Int = 5_000) async throws -> SyncResponse {
+    public func fetch(
+        from endpoint: NWEndpoint, since: Date?, limit: Int = 5_000, photosVersion: String? = nil
+    ) async throws -> SyncResponse {
         let params = NWParameters(tls: tlsOptions(), tcp: .init())
         params.includePeerToPeer = true
         let conn = NWConnection(to: endpoint, using: params)
@@ -85,7 +87,7 @@ public final class SyncClient: @unchecked Sendable {
                 case .ready:
                     do {
                         let payload = try SyncProtocol.encoder.encode(
-                            SyncRequest(since: since, limit: limit)
+                            SyncRequest(since: since, limit: limit, photosVersion: photosVersion)
                         )
                         conn.send(content: SyncProtocol.frame(payload), completion: .contentProcessed { err in
                             if let err { finish(.failure(SyncError.connectionFailed("\(err)"))); return }

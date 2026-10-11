@@ -61,16 +61,19 @@ final class SyncManager {
 
             var received = 0
             var latestPhones: [String: String]?
+            var latestPhotos: (photos: [String: Data], version: String?)?
+            let photosVersion = await MessageStore.shared.photosVersion
             // Migração de schema (ex.: chat_phone na v2) exige puxar tudo de novo:
             // o upsert atualiza as linhas que já existem.
             let full = await MessageStore.shared.needsFullResync
             var since = full ? nil : await MessageStore.shared.watermark
             while true {
                 state = .syncing("baixando… (\(received))")
-                let resp = try await client.fetch(from: endpoint, since: since)
+                let resp = try await client.fetch(from: endpoint, since: since, photosVersion: photosVersion)
                 // Antes do guard: a resposta vazia (nada novo) ainda traz o mapa
                 // atualizado, e é justamente o caso comum de um sync de rotina.
                 if let phones = resp.chatPhones { latestPhones = phones }
+                if let photos = resp.chatPhotos { latestPhotos = (photos, resp.photosVersion) }
                 guard !resp.messages.isEmpty else { break }
                 try await MessageStore.shared.ingest(resp.messages)
                 received += resp.messages.count
@@ -80,9 +83,18 @@ final class SyncManager {
 
             if full { await MessageStore.shared.clearFullResync() }
             if let latestPhones { await MessageStore.shared.replaceChatPhones(latestPhones) }
+            let photoChanges = if let latestPhotos {
+                await MessageStore.shared.replacePhotos(latestPhotos.photos, version: latestPhotos.version)
+            } else {
+                Set<String>()
+            }
 
             state = .syncing("indexando para a Siri…")
-            let indexed = try await Indexer.shared.indexPending()
+            let indexed = try await Indexer.shared.indexPending(refreshing: photoChanges) { done, total in
+                await MainActor.run {
+                    self.state = .syncing("indexando para a Siri… \(done.formatted()) de \(total.formatted())")
+                }
+            }
 
             await refresh()
             state = .done(received: received, indexed: indexed, at: Date())
