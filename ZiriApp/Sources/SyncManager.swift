@@ -37,9 +37,13 @@ final class SyncManager {
 
     func pair(withCode code: String) -> Bool {
         guard let key = PairingKey.fromCode(code) else { return false }
+        pair(with: key)
+        return true
+    }
+
+    func pair(with key: PairingKey) {
         Keychain.pairingKey = key
         state = .idle
-        return true
     }
 
     func unpair() {

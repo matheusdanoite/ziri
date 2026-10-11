@@ -1,0 +1,11 @@
+// Assinatura do ziri. Os valores de cada pessoa ficam em Local.xcconfig, fora
+// do git: o ./install.sh o cria na primeira vez, a partir do time da conta
+// Apple logada no Xcode.
+//
+// O prefixo precisa ser só seu: um bundle id pertence ao primeiro time que o
+// registra, então outro time não consegue assinar com o mesmo.
+
+DEVELOPMENT_TEAM =
+ZIRI_BUNDLE_PREFIX = fi.ziri.unconfigured
+
+#include? "Local.xcconfig"

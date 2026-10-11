@@ -1,8 +1,5 @@
 import Foundation
 import ZiriCore
-#if os(macOS)
-import AppKit
-#endif
 
 /// Store local do iPhone. Mesmo schema do Mac — o ZiriStore do ZiriCore compila
 /// nas duas plataformas, então não existe formato duplicado.
@@ -13,16 +10,9 @@ actor MessageStore {
     static let shared = MessageStore()
 
     private let store: ZiriStore?
-    #if os(macOS)
-    var lastSourceStamp: [Date?] = []
-    #endif
 
     init() {
-        var dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        #if os(macOS)
-        // Fora de sandbox, Application Support é compartilhado por todos os apps.
-        dir = dir.appendingPathComponent("fi.ziri.mac", isDirectory: true)
-        #endif
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         store = try? ZiriStore(path: dir.appendingPathComponent("ziri.sqlite").path)
     }
@@ -77,47 +67,3 @@ actor MessageStore {
             .map { ZiriConversationEntity(id: $0.id, name: $0.name, isGroup: $0.isGroup) }
     }
 }
-
-#if os(macOS)
-enum MacIngestError: Error {
-    case whatsAppNotInstalled
-    /// O banco existe mas o macOS negou a leitura (proteção de dados de outros apps).
-    case noAccess
-}
-
-extension MessageStore {
-    /// No Mac não há sync: o ziri lê o banco do WhatsApp desta máquina.
-    ///
-    /// Pula a rodada se nenhum arquivo de origem mudou. Sem isso, cada rodada
-    /// copia o banco inteiro (~26 MB via VACUUM INTO) mesmo sem mensagem nova.
-    func ingestFromWhatsApp() throws -> Int {
-        guard let store else { return 0 }
-        let reader = ChatStorageReader()
-        guard reader.sourceExists else {
-            let installed = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "net.whatsapp.WhatsApp") != nil
-            throw installed ? MacIngestError.noAccess : MacIngestError.whatsAppNotInstalled
-        }
-        let full = try store.needsFullResync
-        let stamp = Self.sourceStamp()
-        if !full, stamp == lastSourceStamp { return 0 }
-
-        let messages: [ZMessage]
-        do {
-            messages = try reader.messages(since: full ? nil : try store.watermark)
-        } catch SQLiteError.open {
-            throw MacIngestError.noAccess
-        }
-        let novas = try store.upsert(messages)
-        if full { try store.clearFullResync() }
-        try store.replaceChatPhones(reader.chatPhones())
-        lastSourceStamp = stamp
-        return novas
-    }
-
-    private static func sourceStamp() -> [Date?] {
-        [ChatStorageReader.defaultPath, ChatStorageReader.contactsPath]
-            .flatMap { [$0, $0 + "-wal"] }
-            .map { (try? FileManager.default.attributesOfItem(atPath: $0))?[.modificationDate] as? Date }
-    }
-}
-#endif

@@ -34,7 +34,7 @@ struct ContentView: View {
                     }
                 } else {
                     Section("parear com o Mac") {
-                        Text("Rode `ziri status` no Mac e digite o código abaixo.")
+                        Text("Aponte a Câmera para o QR code que o instalador mostra no Mac. Sem câmera, digite o código que aparece embaixo dele.")
                             .font(.footnote).foregroundStyle(.secondary)
                         TextField("código de pareamento", text: $code, axis: .vertical)
                             .textInputAutocapitalization(.characters)
@@ -49,6 +49,13 @@ struct ContentView: View {
             .navigationTitle("ziri")
             .onOpenURL { url in
                 openLog.notice("caminho: link \(url.scheme ?? "?", privacy: .public)")
+                // QR code do Mac, lido pela Câmera. Pareia de novo mesmo se já
+                // pareado: é assim que se troca de Mac.
+                if let key = PairingKey.fromPairingURL(url) {
+                    sync.pair(with: key)
+                    Task { await sync.sync() }
+                    return
+                }
                 guard let id = ZiriLink.messageID(from: url) else { return }
                 Task { opened = try? await MessageStore.shared.messages(withIDs: [id]).first }
             }

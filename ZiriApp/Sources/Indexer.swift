@@ -15,7 +15,8 @@ actor Indexer {
     /// O índice guarda o displayRepresentation do momento da indexação, então
     /// mudar o código não muda os cards da Siri até reindexar tudo.
     /// v2: nome uma vez só + ícone do WhatsApp.
-    private let indexVersion = 2
+    /// v3: símbolo de conversa no lugar do ícone do WhatsApp.
+    private let indexVersion = 3
     private let versionKey = "ziri.indexVersion"
 
     var lastIndexed: Date? {

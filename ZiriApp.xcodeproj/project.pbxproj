@@ -7,38 +7,46 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0199EE7E9FA37AE11AB80689 /* MessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C18A6CA4E8618EF55958B44 /* MessageStore.swift */; };
 		0708BFDE6CC07BE535E45A8C /* ZiriCore in Frameworks */ = {isa = PBXBuildFile; productRef = C44082307CEE79689C63239E /* ZiriCore */; };
-		2072526D9D03F2AA34B78AB1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 26563E903E3AD005E9C0D9BF /* Assets.xcassets */; };
+		275A0F68DD5F661D14D77CDB /* fi.ziri.mac.agent.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 78E0871FD961CD7BE2A0A9FA /* fi.ziri.mac.agent.plist */; };
 		3A1F818C434653AC74CD3674 /* ZiriCore in Frameworks */ = {isa = PBXBuildFile; productRef = 633A1EDFC662FD56F033406C /* ZiriCore */; };
 		502C6DA78201A0752FFF4539 /* ZiriApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEFA8D7C75A046F72A435595 /* ZiriApp.swift */; };
-		89E3AB36A61F3E9464D691A4 /* Entities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1ACD982009A0CF6FE4E045 /* Entities.swift */; };
-		A8FC73ABF3711278D3875072 /* ZiriMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690CC17BE045DA203AF397A9 /* ZiriMacApp.swift */; };
-		B1288C815602030CDDCA8C8E /* Indexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DCF20ABA2B433DE7D21330 /* Indexer.swift */; };
-		BD52E892DC248D3AFF4B5F5E /* MessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE805A2A9FB81DAE1007DD4 /* MessageStore.swift */; };
-		BEEB46F0C113C7746C567B5A /* MessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE805A2A9FB81DAE1007DD4 /* MessageStore.swift */; };
-		C3750209AF0DAA12EF74A2B5 /* MenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2303DC82463D3932D5844435 /* MenuContent.swift */; };
+		5249C50668A2495B89FAB941 /* Indexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5178BA6C852A9B0B5D7E1FE9 /* Indexer.swift */; };
+		720D50CF95911EFACBCB6C03 /* PairingQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2397C67B11CBE73B8A5441FE /* PairingQR.swift */; };
+		72A7D1B6FC608FEAEEEF7A97 /* Entities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D3D9B83F0176FDCCA64EC96 /* Entities.swift */; };
 		CF2018FD96352A03249A8ED7 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990C7EB020F9D92B08278F82 /* SyncManager.swift */; };
-		D227F403F9BC25D34B427486 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 26563E903E3AD005E9C0D9BF /* Assets.xcassets */; };
-		D7FC38DA8E905F9E1FFD056E /* Entities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1ACD982009A0CF6FE4E045 /* Entities.swift */; };
 		DA181434581ACEE0A0823142 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75FC07E279FE3B927F2931F2 /* ContentView.swift */; };
-		E3A164533F9807642E832906 /* MacBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFB5F2C00B1E9B5421C2254 /* MacBridge.swift */; };
-		FAE56C806726595CB426127F /* Indexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DCF20ABA2B433DE7D21330 /* Indexer.swift */; };
+		EA84840136885AF8B6D19BA3 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B37311D964B36DE2D7519B /* main.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5404AF66018D14E5A8857E8D /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchAgents;
+			dstSubfolderSpec = 1;
+			files = (
+				275A0F68DD5F661D14D77CDB /* fi.ziri.mac.agent.plist in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0933146240ABE420AF2FE4AA /* ziri */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ziri; path = .; sourceTree = SOURCE_ROOT; };
-		2303DC82463D3932D5844435 /* MenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContent.swift; sourceTree = "<group>"; };
-		26563E903E3AD005E9C0D9BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		690CC17BE045DA203AF397A9 /* ZiriMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZiriMacApp.swift; sourceTree = "<group>"; };
+		2397C67B11CBE73B8A5441FE /* PairingQR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingQR.swift; sourceTree = "<group>"; };
+		5178BA6C852A9B0B5D7E1FE9 /* Indexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Indexer.swift; sourceTree = "<group>"; };
+		6D3D9B83F0176FDCCA64EC96 /* Entities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entities.swift; sourceTree = "<group>"; };
 		75FC07E279FE3B927F2931F2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		78E0871FD961CD7BE2A0A9FA /* fi.ziri.mac.agent.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = fi.ziri.mac.agent.plist; sourceTree = "<group>"; };
+		7C18A6CA4E8618EF55958B44 /* MessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageStore.swift; sourceTree = "<group>"; };
 		8D73B8D896E9D9A71ED4B101 /* ZiriMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZiriMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		990C7EB020F9D92B08278F82 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
-		9F1ACD982009A0CF6FE4E045 /* Entities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entities.swift; sourceTree = "<group>"; };
-		AFE805A2A9FB81DAE1007DD4 /* MessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageStore.swift; sourceTree = "<group>"; };
+		C605E930F2214AA99FD63F27 /* ziri.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ziri.xcconfig; sourceTree = "<group>"; };
 		C877995814CDE60A3FDB11F8 /* ZiriApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ZiriApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEFA8D7C75A046F72A435595 /* ZiriApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZiriApp.swift; sourceTree = "<group>"; };
-		DAFB5F2C00B1E9B5421C2254 /* MacBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacBridge.swift; sourceTree = "<group>"; };
-		F4DCF20ABA2B433DE7D21330 /* Indexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Indexer.swift; sourceTree = "<group>"; };
+		D4B37311D964B36DE2D7519B /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,21 +69,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		010B03A514AEA7D565F068CF /* Shared */ = {
+		0827DE00D9E345B4129B449B /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				26563E903E3AD005E9C0D9BF /* Assets.xcassets */,
-				9F1ACD982009A0CF6FE4E045 /* Entities.swift */,
-				F4DCF20ABA2B433DE7D21330 /* Indexer.swift */,
-				AFE805A2A9FB81DAE1007DD4 /* MessageStore.swift */,
+				C605E930F2214AA99FD63F27 /* ziri.xcconfig */,
 			);
-			path = Shared;
+			path = Config;
 			sourceTree = "<group>";
 		};
 		18F596B4DF11F309F6166E7B /* Sources */ = {
 			isa = PBXGroup;
 			children = (
 				75FC07E279FE3B927F2931F2 /* ContentView.swift */,
+				6D3D9B83F0176FDCCA64EC96 /* Entities.swift */,
+				5178BA6C852A9B0B5D7E1FE9 /* Indexer.swift */,
+				7C18A6CA4E8618EF55958B44 /* MessageStore.swift */,
 				990C7EB020F9D92B08278F82 /* SyncManager.swift */,
 				CEFA8D7C75A046F72A435595 /* ZiriApp.swift */,
 			);
@@ -95,21 +103,29 @@
 		30B226F4D3B0A170FEDA8C03 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				DAFB5F2C00B1E9B5421C2254 /* MacBridge.swift */,
-				2303DC82463D3932D5844435 /* MenuContent.swift */,
-				690CC17BE045DA203AF397A9 /* ZiriMacApp.swift */,
+				D4B37311D964B36DE2D7519B /* main.swift */,
+				2397C67B11CBE73B8A5441FE /* PairingQR.swift */,
 			);
 			name = Sources;
 			path = ZiriMac/Sources;
 			sourceTree = "<group>";
 		};
+		453C1902CED8FCAC6D797A1F /* ZiriMac */ = {
+			isa = PBXGroup;
+			children = (
+				78E0871FD961CD7BE2A0A9FA /* fi.ziri.mac.agent.plist */,
+			);
+			path = ZiriMac;
+			sourceTree = "<group>";
+		};
 		6915355367C6AF933296BFF0 = {
 			isa = PBXGroup;
 			children = (
+				0827DE00D9E345B4129B449B /* Config */,
 				AE3394748ED7346576AF575D /* Packages */,
-				010B03A514AEA7D565F068CF /* Shared */,
 				18F596B4DF11F309F6166E7B /* Sources */,
 				30B226F4D3B0A170FEDA8C03 /* Sources */,
+				453C1902CED8FCAC6D797A1F /* ZiriMac */,
 				211E29854BA9EAA986A0BADC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,7 +146,6 @@
 			buildConfigurationList = 87994211175DDBB2971E7B38 /* Build configuration list for PBXNativeTarget "ZiriApp" */;
 			buildPhases = (
 				219D39F5BE75AD72DCE0F0D6 /* Sources */,
-				C3792DEAA8E1E96729C0A53F /* Resources */,
 				3EE41FE5FEBCDB2B7E8BEB55 /* Frameworks */,
 			);
 			buildRules = (
@@ -150,7 +165,7 @@
 			buildConfigurationList = 52BF9A717D0DEA74A761336A /* Build configuration list for PBXNativeTarget "ZiriMac" */;
 			buildPhases = (
 				D6B84BA1395C5B92C32E458A /* Sources */,
-				570F47BFF216B04A4BA2879E /* Resources */,
+				5404AF66018D14E5A8857E8D /* CopyFiles */,
 				2A7ABDF44F98CAA7CDDAD0AA /* Frameworks */,
 			);
 			buildRules = (
@@ -175,11 +190,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					87ADD39D7F4BCB092324649E = {
-						DevelopmentTeam = Z7KM7R2775;
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					D81323F8CCEF2C08107192A3 = {
-						DevelopmentTeam = Z7KM7R2775;
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -207,34 +222,15 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXResourcesBuildPhase section */
-		570F47BFF216B04A4BA2879E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				2072526D9D03F2AA34B78AB1 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C3792DEAA8E1E96729C0A53F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				D227F403F9BC25D34B427486 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		219D39F5BE75AD72DCE0F0D6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				DA181434581ACEE0A0823142 /* ContentView.swift in Sources */,
-				D7FC38DA8E905F9E1FFD056E /* Entities.swift in Sources */,
-				FAE56C806726595CB426127F /* Indexer.swift in Sources */,
-				BEEB46F0C113C7746C567B5A /* MessageStore.swift in Sources */,
+				72A7D1B6FC608FEAEEEF7A97 /* Entities.swift in Sources */,
+				5249C50668A2495B89FAB941 /* Indexer.swift in Sources */,
+				0199EE7E9FA37AE11AB80689 /* MessageStore.swift in Sources */,
 				CF2018FD96352A03249A8ED7 /* SyncManager.swift in Sources */,
 				502C6DA78201A0752FFF4539 /* ZiriApp.swift in Sources */,
 			);
@@ -244,12 +240,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				89E3AB36A61F3E9464D691A4 /* Entities.swift in Sources */,
-				B1288C815602030CDDCA8C8E /* Indexer.swift in Sources */,
-				E3A164533F9807642E832906 /* MacBridge.swift in Sources */,
-				C3750209AF0DAA12EF74A2B5 /* MenuContent.swift in Sources */,
-				BD52E892DC248D3AFF4B5F5E /* MessageStore.swift in Sources */,
-				A8FC73ABF3711278D3875072 /* ZiriMacApp.swift in Sources */,
+				720D50CF95911EFACBCB6C03 /* PairingQR.swift in Sources */,
+				EA84840136885AF8B6D19BA3 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +250,7 @@
 /* Begin XCBuildConfiguration section */
 		0C6950C985CDD8040575105A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C605E930F2214AA99FD63F27 /* ziri.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -315,22 +308,21 @@
 		5C215A38BCCAEB61A308A0FF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = Z7KM7R2775;
 				ENABLE_APP_SANDBOX = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ZiriMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ziri;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = fi.ziri.mac;
+				MARKETING_VERSION = 0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ZIRI_BUNDLE_PREFIX).mac";
 				PRODUCT_NAME = ziri;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -339,6 +331,7 @@
 		};
 		697A059A91258D278390A70D /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C605E930F2214AA99FD63F27 /* ziri.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -403,10 +396,9 @@
 		8F4EB67FA49E40F0B898B5FC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Z7KM7R2775;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ZiriApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ziri;
@@ -416,7 +408,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = fi.ziri.app;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ZIRI_BUNDLE_PREFIX).app";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -426,10 +418,9 @@
 		B8DBD80642A93166539E8AB2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Z7KM7R2775;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ZiriApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ziri;
@@ -439,7 +430,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = fi.ziri.app;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ZIRI_BUNDLE_PREFIX).app";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -449,22 +440,21 @@
 		C34FE743E2F72D86049F55D0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = Z7KM7R2775;
 				ENABLE_APP_SANDBOX = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ZiriMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ziri;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = fi.ziri.mac;
+				MARKETING_VERSION = 0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ZIRI_BUNDLE_PREFIX).mac";
 				PRODUCT_NAME = ziri;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;

@@ -106,6 +106,23 @@ public struct PairingKey: Sendable {
         return PairingKey(raw: Data(bytes))
     }
 
+    /// Link que o Mac mostra como QR code. A Câmera do iPhone reconhece o
+    /// esquema `ziri://` e abre o app, que pareia sem digitar os 52 caracteres.
+    public var pairingURL: URL {
+        var c = URLComponents()
+        c.scheme = "ziri"
+        c.host = "pair"
+        c.queryItems = [URLQueryItem(name: "code", value: code)]
+        return c.url!
+    }
+
+    public static func fromPairingURL(_ url: URL) -> PairingKey? {
+        guard url.scheme == "ziri", url.host == "pair",
+              let code = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                  .queryItems?.first(where: { $0.name == "code" })?.value else { return nil }
+        return fromCode(code)
+    }
+
     public static func loadOrCreate(path: String = defaultPath) throws -> PairingKey {
         if let data = FileManager.default.contents(atPath: path), data.count == 32 {
             return PairingKey(raw: data)

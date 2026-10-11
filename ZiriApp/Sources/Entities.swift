@@ -101,7 +101,7 @@ struct ZiriMessageEntity: IndexedEntity {
 
     /// É o card que a Siri mostra ao citar a mensagem. O nome aparece uma vez
     /// só — numa conversa 1:1, autor e conversa são a mesma pessoa, e
-    /// "X em X" era o que aparecia. A origem fica no ícone e no subtítulo.
+    /// "X em X" era o que aparecia. A origem fica no subtítulo.
     var displayRepresentation: DisplayRepresentation {
         let when = date.formatted(date: .abbreviated, time: .omitted)
         let origin: String
@@ -115,7 +115,7 @@ struct ZiriMessageEntity: IndexedEntity {
         return DisplayRepresentation(
             title: "\(conversation.displayName)",
             subtitle: "\(origin)",
-            image: .whatsApp
+            image: .conversation
         )
     }
 
@@ -187,7 +187,7 @@ struct ZiriConversationEntity {
         DisplayRepresentation(
             title: "\(displayName)",
             subtitle: isGroup ? "Grupo no WhatsApp" : "Conversa no WhatsApp",
-            image: .whatsApp
+            image: .conversation
         )
     }
 
@@ -218,9 +218,9 @@ struct ZiriCustomAttachment {
 }
 
 extension DisplayRepresentation.Image {
-    /// Ícone do WhatsApp, do catálogo de assets do ziri. A origem do conteúdo
-    /// é o WhatsApp; o ziri é só a ponte e não deveria aparecer no card.
-    static let whatsApp = DisplayRepresentation.Image(named: "WhatsApp")
+    /// Símbolo genérico de conversa, não o logo do WhatsApp: o repositório é
+    /// público e o logo é marca da Meta. A origem aparece no subtítulo.
+    static let conversation = DisplayRepresentation.Image(systemName: "bubble.left.and.text.bubble.right")
 }
 
 // MARK: - Queries

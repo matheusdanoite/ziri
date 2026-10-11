@@ -1,7 +1,7 @@
 import Foundation
 
 /// Lê o ChatStorage.sqlite do WhatsApp para Mac sem nunca escrever nele.
-public struct ChatStorageReader {
+public struct ChatStorageReader: Sendable {
     static let groupContainer = NSString(
         string: "~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared"
     ).expandingTildeInPath

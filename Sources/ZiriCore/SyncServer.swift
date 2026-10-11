@@ -7,6 +7,9 @@ public final class SyncServer: @unchecked Sendable {
     let store: ZiriStore
     /// Fonte do mapa conversa→telefone, consultada a cada pedido.
     public var phonesProvider: (@Sendable () -> [String: String])?
+    /// Roda antes de cada resposta, na fila do servidor. É onde o Bridge lê o
+    /// WhatsApp: o iPhone recebe o que existe no momento do pedido.
+    public var beforeResponse: (@Sendable () -> Void)?
     let key: PairingKey
     let port: NWEndpoint.Port
     var listener: NWListener?
@@ -73,6 +76,7 @@ public final class SyncServer: @unchecked Sendable {
             guard let self, let data else { conn.cancel(); return }
             do {
                 let req = try SyncProtocol.decoder.decode(SyncRequest.self, from: data)
+                beforeResponse?()
                 let messages = try store.messages(since: req.sinceDate, limit: req.limit)
                 let resp = SyncResponse(
                     messages: messages, hasMore: messages.count == req.limit,

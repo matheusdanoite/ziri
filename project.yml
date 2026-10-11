@@ -7,26 +7,25 @@ options:
 packages:
   ZiriCore:
     path: .
+# Time e prefixo de bundle id vêm de Config/Local.xcconfig (ver Config/ziri.xcconfig).
+# Não declare DEVELOPMENT_TEAM nos alvos: setting de alvo ganha do xcconfig.
+configFiles:
+  Debug: Config/ziri.xcconfig
+  Release: Config/ziri.xcconfig
 targets:
   ZiriApp:
     type: application
     platform: iOS
-    # Shared: entidades do App Intents, indexador, store e o ícone do WhatsApp.
-    # É o mesmo código nos dois alvos — cada aparelho indexa localmente.
-    sources: [ZiriApp/Sources, Shared]
+    # Só o iPhone indexa: a Siri do Mac recusa doações de apps fora da App Store.
+    sources: [ZiriApp/Sources]
     dependencies:
       - package: ZiriCore
         product: ZiriCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: fi.ziri.app
+        PRODUCT_BUNDLE_IDENTIFIER: $(ZIRI_BUNDLE_PREFIX).app
         MARKETING_VERSION: "0.1"
         SWIFT_VERSION: "6.0"
-        DEVELOPMENT_TEAM: Z7KM7R2775
-        # O XcodeGen aponta um AppIcon por padrão; com um catálogo de assets no
-        # alvo (o ícone do WhatsApp dos cards), o build passa a exigi-lo. O ziri
-        # ainda não tem ícone próprio.
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
         CODE_SIGN_STYLE: Automatic
         # Info.plist: chaves escalares ficam AQUI, arrays ficam no arquivo.
         #
@@ -46,25 +45,35 @@ targets:
   ZiriMac:
     type: application
     platform: macOS
-    # No Mac não há sync: o app lê o WhatsApp desta máquina e indexa aqui.
-    sources: [ZiriMac/Sources, Shared]
+    # Agente do launchd sem interface: serve o WhatsApp deste Mac para o iPhone.
+    # É um app, não o binário `ziri`, para ter identidade de assinatura estável
+    # — é a ela que o macOS amarra a permissão de ler dados de outros apps.
+    sources:
+      - ZiriMac/Sources
+      - path: ZiriMac/fi.ziri.mac.agent.plist
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchAgents
     dependencies:
       - package: ZiriCore
         product: ZiriCore
     settings:
       base:
         PRODUCT_NAME: ziri
-        PRODUCT_BUNDLE_IDENTIFIER: fi.ziri.mac
-        MARKETING_VERSION: "0.1"
+        # A permissão de acesso ao WhatsApp fica amarrada a bundle id +
+        # certificado: mudar o prefixo pede a permissão de novo.
+        PRODUCT_BUNDLE_IDENTIFIER: $(ZIRI_BUNDLE_PREFIX).mac
+        MARKETING_VERSION: "0.2"
         SWIFT_VERSION: "6.0"
-        DEVELOPMENT_TEAM: Z7KM7R2775
         CODE_SIGN_STYLE: Automatic
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        # O preset do XcodeGen assina ad-hoc ("-") no Mac, e assinatura ad-hoc
+        # muda a cada build: a permissão concedida não sobreviveria.
+        CODE_SIGN_IDENTITY: Apple Development
         # Sem App Sandbox: o ziri precisa ler o group container do WhatsApp.
         ENABLE_APP_SANDBOX: NO
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_FILE: ZiriMac/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: ziri
-        # Só barra de menus: sem ícone no Dock, sem janela ao abrir.
+        # Sem ícone no Dock e sem menu: o executável nem sobe o AppKit.
         INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
